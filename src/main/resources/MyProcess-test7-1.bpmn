@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:activiti="http://activiti.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.activiti.org/test">
+  <process id="qj7-1" name="请假7-1" isExecutable="true">
+    <startEvent id="startevent1" name="Start"></startEvent>
+    <userTask id="xs7-1" name="学生" activiti:assignee="${assignee}">
+      <extensionElements>
+        <activiti:taskListener event="create" class="com.huiway.activiti.common.listener.OvertimeListener">
+          <activiti:field name="timeOut">
+            <activiti:string><![CDATA[20]]></activiti:string>
+          </activiti:field>
+        </activiti:taskListener>
+      </extensionElements>
+    </userTask>
+    <userTask id="ls7-1" name="老师"></userTask>
+    <sequenceFlow id="flow1" sourceRef="xs7-1" targetRef="ls7-1"></sequenceFlow>
+    <userTask id="xz6" name="校长"></userTask>
+    <sequenceFlow id="flow2" sourceRef="ls7-1" targetRef="xz7-1">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${message==1}]]></conditionExpression>
+    </sequenceFlow>
+    <endEvent id="endevent1" name="End"></endEvent>
+    <sequenceFlow id="flow3" sourceRef="startevent1" targetRef="xs7-1"></sequenceFlow>
+    <sequenceFlow id="flow4" sourceRef="xz7-1" targetRef="endevent1">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${message==1}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow5" sourceRef="xz7-1" targetRef="xs7-1">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${message==0}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow6" sourceRef="ls7-1" targetRef="xs7-1">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${message==0}]]></conditionExpression>
+    </sequenceFlow>
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_qj7-1">
+    <bpmndi:BPMNPlane bpmnElement="qj7-1" id="BPMNPlane_qj7-1">
+      <bpmndi:BPMNShape bpmnElement="startevent1" id="BPMNShape_startevent1">
+        <omgdc:Bounds height="35.0" width="35.0" x="70.0" y="120.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="xs7-1" id="BPMNShape_xs7-1">
+        <omgdc:Bounds height="55.0" width="105.0" x="190.0" y="110.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="ls7-1" id="BPMNShape_ls7-1">
+        <omgdc:Bounds height="55.0" width="105.0" x="340.0" y="110.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="xz6" id="BPMNShape_xz6">
+        <omgdc:Bounds height="55.0" width="105.0" x="490.0" y="110.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endevent1" id="BPMNShape_endevent1">
+        <omgdc:Bounds height="35.0" width="35.0" x="710.0" y="120.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="flow1" id="BPMNEdge_flow1">
+        <omgdi:waypoint x="295.0" y="137.0"></omgdi:waypoint>
+        <omgdi:waypoint x="340.0" y="137.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow3" id="BPMNEdge_flow3">
+        <omgdi:waypoint x="105.0" y="137.0"></omgdi:waypoint>
+        <omgdi:waypoint x="190.0" y="137.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow6" id="BPMNEdge_flow6">
+        <omgdi:waypoint x="392.0" y="165.0"></omgdi:waypoint>
+        <omgdi:waypoint x="392.0" y="284.0"></omgdi:waypoint>
+        <omgdi:waypoint x="242.0" y="284.0"></omgdi:waypoint>
+        <omgdi:waypoint x="242.0" y="165.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

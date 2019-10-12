@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:mysql://39.97.189.173:3306/bpm20190829?useUnicode=true&characterEncoding=UTF-8
+    username: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    password: 1QAZ2wsx
+    tomcat:
+      max-active: 1000
+      max-idle: 1000
+  resources:
+    static-locations: classpath:/templates/
+logging:
+  config: classpath:log4j2.xml
+mybatis-plus:
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl   #打印sql语句,调试用
+  mapper-locations: classpath:mappers/*Mapper.xml
+  type-aliases-package: com.huiway.activiti.entity
+  global-config:
+    #主键类型  0:"数据库ID自增", 1:"用户输入ID",2:"全局唯一ID (数字类型唯一ID)", 3:"全局唯一ID UUID";
+    id-type: 1
+    logic-delete-value: 0
+    logic-not-delete-value: 1
+    banner: false
+      

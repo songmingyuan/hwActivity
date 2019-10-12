@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:activiti="http://activiti.org/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:omgdc="http://www.omg.org/spec/DD/20100524/DC" xmlns:omgdi="http://www.omg.org/spec/DD/20100524/DI" typeLanguage="http://www.w3.org/2001/XMLSchema" expressionLanguage="http://www.w3.org/1999/XPath" targetNamespace="http://www.activiti.org/test">
+  <process id="qj8" name="请假8" isExecutable="true">
+    <startEvent id="startevent8" name="Start"></startEvent>
+    <userTask id="xs8" name="学生"></userTask>
+    <userTask id="ls8" name="老师"></userTask>
+    <sequenceFlow id="flow1" sourceRef="xs8" targetRef="ls8"></sequenceFlow>
+    <userTask id="xz8" name="校长"></userTask>
+    <sequenceFlow id="flow2" sourceRef="ls8" targetRef="xz8">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${judge==1}]]></conditionExpression>
+    </sequenceFlow>
+    <endEvent id="endevent8" name="End"></endEvent>
+    <sequenceFlow id="flow3" sourceRef="startevent8" targetRef="xs8"></sequenceFlow>
+    <sequenceFlow id="flow4" sourceRef="xz8" targetRef="endevent8">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${judge==1}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow5" sourceRef="xz8" targetRef="xs8">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${judge==0}]]></conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="flow6" sourceRef="ls8" targetRef="xs8">
+      <conditionExpression xsi:type="tFormalExpression"><![CDATA[${judge==0}]]></conditionExpression>
+    </sequenceFlow>
+    <boundaryEvent id="boundarytimer1" name="Timer" attachedToRef="xs8" cancelActivity="false">
+      <timerEventDefinition>
+        <timeCycle>R3/PT1M</timeCycle>
+      </timerEventDefinition>
+    </boundaryEvent>
+    <boundaryEvent id="boundarytimer2" name="Timer" attachedToRef="ls8" cancelActivity="false">
+      <timerEventDefinition>
+        <timeDuration>PT1M</timeDuration>
+      </timerEventDefinition>
+    </boundaryEvent>
+    <serviceTask id="mailtask1" name="学生超时" activiti:type="mail">
+      <extensionElements>
+        <activiti:field name="to">
+          <activiti:string><![CDATA[13837172068@139.com]]></activiti:string>
+        </activiti:field>
+        <activiti:field name="subject">
+          <activiti:string><![CDATA[学生超时]]></activiti:string>
+        </activiti:field>
+        <activiti:field name="charset">
+          <activiti:string><![CDATA[utf-8]]></activiti:string>
+        </activiti:field>
+        <activiti:field name="text">
+          <activiti:string><![CDATA[学生超时]]></activiti:string>
+        </activiti:field>
+        <activiti:field name="from">
+          <activiti:string><![CDATA[707404187@qq.com]]></activiti:string>
+        </activiti:field>
+      </extensionElements>
+    </serviceTask>
+    <serviceTask id="mailtask2" name="老师超时" activiti:type="mail">
+      <extensionElements>
+        <activiti:field name="to">
+          <activiti:string><![CDATA[13837172068@139.com]]></activiti:string>
+        </activiti:field>
+        <activiti:field name="subject">
+          <activiti:string><![CDATA[老师超时]]></activiti:string>
+        </activiti:field>
+        <activiti:field name="text">
+          <activiti:string><![CDATA[老师超时]]></activiti:string>
+        </activiti:field>
+        <activiti:field name="charset">
+          <activiti:string><![CDATA[utf-8]]></activiti:string>
+        </activiti:field>
+        <activiti:field name="from">
+          <activiti:string><![CDATA[707404187@qq.com]]></activiti:string>
+        </activiti:field>
+      </extensionElements>
+    </serviceTask>
+    <sequenceFlow id="flow7" sourceRef="boundarytimer1" targetRef="mailtask1"></sequenceFlow>
+    <sequenceFlow id="flow8" sourceRef="boundarytimer2" targetRef="mailtask2"></sequenceFlow>
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_qj8">
+    <bpmndi:BPMNPlane bpmnElement="qj8" id="BPMNPlane_qj8">
+      <bpmndi:BPMNShape bpmnElement="startevent8" id="BPMNShape_startevent8">
+        <omgdc:Bounds height="35.0" width="35.0" x="110.0" y="120.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="xs8" id="BPMNShape_xs8">
+        <omgdc:Bounds height="55.0" width="105.0" x="190.0" y="110.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="boundarytimer1" id="BPMNShape_boundarytimer1">
+        <omgdc:Bounds height="30.0" width="30.0" x="190.0" y="140.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="ls8" id="BPMNShape_ls8">
+        <omgdc:Bounds height="55.0" width="105.0" x="340.0" y="110.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="boundarytimer2" id="BPMNShape_boundarytimer2">
+        <omgdc:Bounds height="30.0" width="30.0" x="410.0" y="150.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="xz8" id="BPMNShape_xz8">
+        <omgdc:Bounds height="55.0" width="105.0" x="490.0" y="110.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endevent8" id="BPMNShape_endevent8">
+        <omgdc:Bounds height="35.0" width="35.0" x="650.0" y="120.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="mailtask1" id="BPMNShape_mailtask1">
+        <omgdc:Bounds height="55.0" width="105.0" x="240.0" y="260.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="mailtask2" id="BPMNShape_mailtask2">
+        <omgdc:Bounds height="55.0" width="105.0" x="480.0" y="260.0"></omgdc:Bounds>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="flow1" id="BPMNEdge_flow1">
+        <omgdi:waypoint x="295.0" y="137.0"></omgdi:waypoint>
+        <omgdi:waypoint x="340.0" y="137.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow2" id="BPMNEdge_flow2">
+        <omgdi:waypoint x="445.0" y="137.0"></omgdi:waypoint>
+        <omgdi:waypoint x="490.0" y="137.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow3" id="BPMNEdge_flow3">
+        <omgdi:waypoint x="145.0" y="137.0"></omgdi:waypoint>
+        <omgdi:waypoint x="190.0" y="137.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow4" id="BPMNEdge_flow4">
+        <omgdi:waypoint x="595.0" y="137.0"></omgdi:waypoint>
+        <omgdi:waypoint x="650.0" y="137.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow5" id="BPMNEdge_flow5">
+        <omgdi:waypoint x="542.0" y="110.0"></omgdi:waypoint>
+        <omgdi:waypoint x="542.0" y="83.0"></omgdi:waypoint>
+        <omgdi:waypoint x="472.0" y="83.0"></omgdi:waypoint>
+        <omgdi:waypoint x="389.0" y="83.0"></omgdi:waypoint>
+        <omgdi:waypoint x="317.0" y="83.0"></omgdi:waypoint>
+        <omgdi:waypoint x="242.0" y="83.0"></omgdi:waypoint>
+        <omgdi:waypoint x="242.0" y="110.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow6" id="BPMNEdge_flow6">
+        <omgdi:waypoint x="392.0" y="165.0"></omgdi:waypoint>
+        <omgdi:waypoint x="392.0" y="193.0"></omgdi:waypoint>
+        <omgdi:waypoint x="315.0" y="193.0"></omgdi:waypoint>
+        <omgdi:waypoint x="242.0" y="193.0"></omgdi:waypoint>
+        <omgdi:waypoint x="242.0" y="165.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow7" id="BPMNEdge_flow7">
+        <omgdi:waypoint x="205.0" y="170.0"></omgdi:waypoint>
+        <omgdi:waypoint x="204.0" y="286.0"></omgdi:waypoint>
+        <omgdi:waypoint x="240.0" y="287.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge bpmnElement="flow8" id="BPMNEdge_flow8">
+        <omgdi:waypoint x="425.0" y="180.0"></omgdi:waypoint>
+        <omgdi:waypoint x="424.0" y="287.0"></omgdi:waypoint>
+        <omgdi:waypoint x="480.0" y="287.0"></omgdi:waypoint>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

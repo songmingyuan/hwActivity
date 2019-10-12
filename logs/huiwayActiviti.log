@@ -1,0 +1,5 @@
+2019-10-12 17:03:54 INFO [restartedMain] com.huiway.activiti.Application [StartupInfoLogger.java : 50] Starting Application on SONGMINGYUAN with PID 7572 (F:\work\git\hwActivity\target\classes started by Administrator in F:\work\git\hwActivity)
+2019-10-12 17:03:54 DEBUG [restartedMain] com.huiway.activiti.Application [StartupInfoLogger.java : 53] Running with Spring Boot v2.1.4.RELEASE, Spring v5.1.6.RELEASE
+2019-10-12 17:03:54 INFO [restartedMain] com.huiway.activiti.Application [SpringApplication.java : 675] No active profile set, falling back to default profiles: default
+2019-10-12 17:03:56 WARN [restartedMain] o.m.s.mapper.ClassPathMapperScanner [Logger.java : 44] No MyBatis mapper was found in '[mapper]' package. Please check your configuration.
+2019-10-12 17:04:05 INFO [restartedMain] com.huiway.activiti.Application [StartupInfoLogger.java : 59] Started Application in 11.969 seconds (JVM running for 12.789)

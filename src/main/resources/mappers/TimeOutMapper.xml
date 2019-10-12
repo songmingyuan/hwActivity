@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.huiway.activiti.mapper.TimeOutMapper">
+   
+    <resultMap id="TimeOutInfoVo" type="com.huiway.activiti.entity.TimeOutInfo">
+        <result column="TASKID" property="taskId" />
+        <result column="ASSIGNEE" property="assignee" />
+        <result column="TIMEOUT" property="timeOut" />
+        <result column="TYPE" property="type" />
+        <result column="CREATEDATE" property="createDate" />
+        <result column="STATE" property="state" />
+        <result column="EMAIL" property="email" />
+    </resultMap>
+   
+    <!--查询超时配置表-->
+    <select id="selectOverTimeByState" resultMap="TimeOutInfoVo">
+		select i.ID,i.ASSIGNEE,i.CREATEDATE,i.STATE,i.TASKID,i.TIMEOUT,i.TYPE,u.EMAIL_ as email
+		 from TB_TIMEOUT_INFO i INNER JOIN ACT_ID_USER u on i.ASSIGNEE=u.ID_ 
+		where i.STATE = '0' 
+    </select>
+   
+</mapper>
