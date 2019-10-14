@@ -6,7 +6,7 @@ public interface CodeConstant {
                * 成功
      */
     String SUCCESS = "1";
-    String FAIL = "0";
+    String FAIL = "-1";
     
 
 }

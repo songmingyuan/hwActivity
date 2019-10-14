@@ -1,9 +1,9 @@
 spring:
   datasource:
-    url: jdbc:mysql://39.97.189.173:3306/bpm20190829?useUnicode=true&characterEncoding=UTF-8
+    url: jdbc:mysql://172.18.248.248:3306/bpm20190829?useUnicode=true&characterEncoding=UTF-8
     username: root
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    password: 1QAZ2wsx
+    driver-class-name: com.mysql.jdbc.Driver
+    password: root
     tomcat:
       max-active: 1000
       max-idle: 1000
