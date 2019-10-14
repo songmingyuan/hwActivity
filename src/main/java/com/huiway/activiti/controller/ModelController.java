@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+import javax.servlet.http.HttpServletRequest;
+
 import org.activiti.bpmn.model.BpmnModel;
 import org.activiti.bpmn.model.FlowElement;
 import org.activiti.engine.RepositoryService;
@@ -22,10 +24,12 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.huiway.activiti.common.bean.RestResponse;
 import com.huiway.activiti.dto.ActTaskNodeDTO;
 import com.huiway.activiti.dto.ActivitiDto;
 import com.huiway.activiti.dto.model.ModelDiagramDTO;
 import com.huiway.activiti.utils.CommonUtils;
+import com.huiway.activiti.utils.StringUtils;
 
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -47,9 +51,14 @@ public class ModelController {
 	@ApiOperation(value = "部署流程模型")
 	//@RequestMapping(value = "/deploy", method=RequestMethod.GET)
 	@PostMapping (value = "/deploy")
-	public ActivitiDto deploy(@RequestParam(value="file",required = false) MultipartFile file) {
-		ActivitiDto response = new ActivitiDto();
+	public RestResponse deploy(@RequestParam(value="file",required = false) MultipartFile file,HttpServletRequest request) {
+        RestResponse response2 = new RestResponse("-1","部署失败！");
 		
+		// ActivitiDto response = new ActivitiDto();
+		String tenantId = request.getParameter("tenantId");
+		if(StringUtils.isBlank(tenantId)){
+			return response2;
+		}
 		InputStream inputStream = null;
 		try {
 			inputStream = file.getInputStream();
@@ -59,15 +68,22 @@ public class ModelController {
 		String resourceName = file.getOriginalFilename();
 		 //根据bpmn文件部署流程  
         Deployment deploy = repositoryService.createDeployment().addInputStream(resourceName, inputStream)
-        		.tenantId("1")
+        		.tenantId(tenantId)
         		.deploy();  
         //获取流程定义  
         ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
         		.deploymentId(deploy.getId()).singleResult();  
         
-        response.setProcDefId(processDefinition.getKey());
-        log.info(response.toString());
-		return response;
+       // response.setProcDefId(processDefinition.getKey());
+        //
+        if(StringUtils.isBlank(processDefinition.getKey())){
+        	return response2;
+        }
+        log.info(response2.toString());
+        response2.setRtnCode("1");
+		response2.setMessage("部署成功！");
+        
+		return response2;
 	}
 	
 	@ApiOperation(value = "获取流程图",notes = "根据流程定义id获取流程图")
