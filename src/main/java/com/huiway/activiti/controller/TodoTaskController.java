@@ -1,10 +1,12 @@
 package com.huiway.activiti.controller;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 
 import org.activiti.bpmn.model.BpmnModel;
@@ -178,5 +180,27 @@ public class TodoTaskController {
         
         return response;
     }
-    
+	
+    @ApiOperation(value = "获取所有流程节点", notes = "获取所有流程节点")
+    @RequestMapping(value = "/get-procdef", method=RequestMethod.GET)
+	public RestResponse getTodoTaskNode(HttpServletRequest request){
+		RestResponse response = new RestResponse("-1","参数错误！");
+		String procdefId = request.getParameter("procdefId");
+		if(StringUtils.isBlank(procdefId)){
+			response.setRtnCode("-1");
+			response.setMessage("procdefId不能为空！");
+			return response;
+		}
+       BpmnModel model = repositoryService.getBpmnModel(procdefId);
+       if(model != null) {
+           Collection<FlowElement> flowElements = model.getMainProcess().getFlowElements();
+           for(FlowElement e : flowElements) {
+           System.out.println("flowelement id:" + e.getId() + "  name:" + e.getName() + "   class:" + e.getClass().toString());
+        }
+        return response;
+	   }
+       
+       return null;
+    }    
+       
 }
