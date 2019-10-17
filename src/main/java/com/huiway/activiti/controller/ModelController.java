@@ -105,15 +105,14 @@ public class ModelController {
     		        if(StringUtils.isBlank(processDefinition.getKey())){
     		        	throw new MyExceptions("部署失败,tenantId不能为空！");
     		        }
-    		        log.info("部署成功");
+    		       
     		        result.put("rtnCode", "1");
     				result.put("rtnMsg", "部署成功!");
     				result.put("procDefId", processDefinition.getKey());
+    				 log.info("部署成功"+result.toString());
     		}
     		
     		
-    		// 直接将json信息打印出来
-    		//System.out.println(jsonParam.toJSONString());
     	} catch (Exception e) {
     		e.printStackTrace();
     		log.info("部署失败"+e.getMessage());
@@ -138,43 +137,7 @@ public class ModelController {
 
 		
 	}
-//	@ApiOperation(value = "部署流程模型")
-//	//@RequestMapping(value = "/deploy", method=RequestMethod.GET)
-//	@PostMapping (value = "/deploy")
-//	public RestResponse deploy(@RequestParam(value="file",required = false) MultipartFile file,HttpServletRequest request) {
-//        RestResponse response2 = new RestResponse("-1","部署失败！");
-//		
-//		// ActivitiDto response = new ActivitiDto();
-//		String tenantId = request.getParameter("tenantId");
-//		if(StringUtils.isBlank(tenantId)){
-//			return response2;
-//		}
-//		InputStream inputStream = null;
-//		try {
-//			inputStream = file.getInputStream();
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-//		String resourceName = file.getOriginalFilename();
-//		 //根据bpmn文件部署流程  
-//        Deployment deploy = repositoryService.createDeployment().addInputStream(resourceName, inputStream)
-//        		.tenantId(tenantId)
-//        		.deploy();  
-//        //获取流程定义  
-//        ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
-//        		.deploymentId(deploy.getId()).singleResult();  
-//        
-//       // response.setProcDefId(processDefinition.getKey());
-//        //
-//        if(StringUtils.isBlank(processDefinition.getKey())){
-//        	return response2;
-//        }
-//        log.info(response2.toString());
-//        response2.setRtnCode("1");
-//		response2.setMessage("部署成功！");
-//        
-//		return response2;
-//	}
+
 	
 	@ApiOperation(value = "获取流程图",notes = "根据流程定义id获取流程图")
 	@RequestMapping(value = "/diagram", method=RequestMethod.GET)

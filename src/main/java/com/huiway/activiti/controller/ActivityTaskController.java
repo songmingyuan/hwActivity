@@ -1,12 +1,18 @@
 package com.huiway.activiti.controller;
 
+import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
 import org.activiti.bpmn.model.BpmnModel;
@@ -30,6 +36,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.alibaba.fastjson.JSONObject;
 import com.google.common.collect.ImmutableMap;
 import com.huiway.activiti.common.bean.RestResponse;
 import com.huiway.activiti.dto.ActivitiDto;
@@ -39,10 +46,12 @@ import com.huiway.activiti.dto.activitytask.DiagramRequestDTO;
 import com.huiway.activiti.dto.activitytask.DiagramResponseDTO;
 import com.huiway.activiti.dto.activitytask.RevocationRequestDTO;
 import com.huiway.activiti.entity.BpmActRuTask;
+import com.huiway.activiti.exception.MyExceptions;
 import com.huiway.activiti.exception.ValidationError;
 import com.huiway.activiti.service.BpmActivityInterface;
 import com.huiway.activiti.utils.BpmsActivityTypeEnum;
 import com.huiway.activiti.utils.CommonUtils;
+import com.huiway.activiti.utils.StringUtils;
 import com.huiway.activiti.utils.UtilMisc;
 
 import io.swagger.annotations.Api;
@@ -72,34 +81,95 @@ public class ActivityTaskController {
 	BpmActivityInterface bpmActivityService;
 	
 	@ApiOperation(value = "启动流程实例")
-	@RequestMapping(value = "/startUp", method=RequestMethod.GET)
-	public RestResponse create(@Valid CreateRequestDTO requestDTO,BindingResult results) {
-		if (results.hasErrors()) {
-			return CommonUtils.initErrors(results);
-		}
+	//@RequestMapping(value = "/startUp", method=RequestMethod.GET)
+	@RequestMapping(value = "/startUp", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+	public void create(HttpServletRequest request,HttpServletResponse response) {
 		
-		RestResponse response = new RestResponse();
 		
-		ActivitiDto dto = new ActivitiDto();
+		JSONObject jsonParam=null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "部署失败!");
+		result.put("procDefId", null);
+		BufferedReader streamReader=null;
+		try {
+    		// 获取输入流
+    		 streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+    		// 写入数据到Stringbuilder
+    		StringBuilder sb = new StringBuilder();
+    		String line = null;
+    		while ((line = streamReader.readLine()) != null) {
+    			sb.append(line);
+    		}
+    		log.info("参数"+sb);
+    		jsonParam = JSONObject.parseObject(sb.toString());
+    		if(jsonParam!=null){
+    			String tenantId=jsonParam.getString("tenantId");
+    			if(StringUtils.isBlank(tenantId)){
+    				throw new MyExceptions("启动流程失败,tenantId不能为空！");
+    			}
+    			String assignee=jsonParam.getString("assignee");
+    			if(StringUtils.isBlank(assignee)){
+    				throw new MyExceptions("启动流程失败,assignee不能为空！");
+    			}
+    			String procDefId=jsonParam.getString("procDefId");
+    			if(StringUtils.isBlank(procDefId)){
+    				throw new MyExceptions("启动流程失败,procDefId不能为空！");
+    			}
+    			String businessKey=jsonParam.getString("businessKey");
+    			if(StringUtils.isBlank(businessKey)){
+    				throw new MyExceptions("启动流程失败,businessKey不能为空！");
+    			}
+    			ActivitiDto dto = new ActivitiDto();
+    			Map<String,Object> map = new HashMap<String,Object>();
+    			map.put("assignee",assignee);
+    			ProcessInstance pi = runtimeService
+    					.startProcessInstanceByKeyAndTenantId(procDefId, 
+    							businessKey, 
+    							map, 
+    							tenantId);
+    					
+    	        dto.setProcDefId(procDefId);
+    	        dto.setProcInstId(pi.getId());
+    	        
+    	        List<BpmActRuTask> actRuTasks = (List<BpmActRuTask>) bpmActivityService.listByMap
+    	        		(ImmutableMap.of("PROC_INST_ID_", pi.getId()));
+    			
+    			
+    			
+    			
+    		       
+    		        result.put("rtnCode", "1");
+    				result.put("rtnMsg", "启动流程成功!");
+    				result.put("bean", dto);
+    				result.put("beans", actRuTasks);
+    				 log.info("启动流程成功"+result.toString());
+    		}
+    		
+    		
+    		// 直接将json信息打印出来
+    		//System.out.println(jsonParam.toJSONString());
+    	} catch (Exception e) {
+    		e.printStackTrace();
+    		log.info("启动流程"+e.getMessage());
+    	}finally{
+    		try{
+    			if(null!=streamReader){
+    				streamReader.close();
+    			}
+    			String result2=result.toString();
+    			PrintWriter p=response.getWriter();
+    			p.println(result2);
+    			p.flush();
+    			p.close();
+    		}catch(Exception e){
+    			e.getStackTrace();
+    			log.info("启动流程"+e.getMessage());
+    		}
+    		
+    	}
 		
-		Map<String,Object> map = new HashMap<String,Object>();
-		map.put("assignee", requestDTO.getAssignee());
-		//map.put("overTimeListener", overTimeListener);
-		ProcessInstance pi = runtimeService
-				.startProcessInstanceByKeyAndTenantId(requestDTO.getProcDefId(), 
-						requestDTO.getBusinessKey(), 
-						map, 
-						requestDTO.getTenantId());
-				
-        dto.setProcDefId(requestDTO.getProcDefId());
-        dto.setProcInstId(pi.getId());
-        response.setBean(dto);
-        
-        List<BpmActRuTask> actRuTasks = (List<BpmActRuTask>) bpmActivityService.listByMap
-        		(ImmutableMap.of("PROC_INST_ID_", pi.getId()));
-        response.setBeans(actRuTasks);
-        
-        return response;
 	}
 	
 	@ApiOperation(value = "获取流程图",notes = "根据流程实例id获取流程图")
