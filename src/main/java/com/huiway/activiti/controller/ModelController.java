@@ -58,8 +58,7 @@ public class ModelController {
 	@RequestMapping(value = "/deploy", method=RequestMethod.POST,produces="application/json;charset=utf-8")
 	//@PostMapping (value = "/deploy")
 	public void deploy(HttpServletRequest request,HttpServletResponse response) {
-        
-		
+		response.setContentType("application/json;charset=utf-8");
 		JSONObject jsonParam=null;
 		JSONObject result = new JSONObject();
 		result.put("rtnCode", "-1");

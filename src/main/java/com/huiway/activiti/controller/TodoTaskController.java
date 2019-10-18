@@ -74,6 +74,7 @@ public class TodoTaskController {
 		result.put("rtnCode", "-1");
 		result.put("rtnMsg", "完成任务失败!");
 		BufferedReader streamReader=null;
+		response.setContentType("application/json;charset=utf-8");
 		try {
     		// 获取输入流
     		 streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
@@ -224,6 +225,7 @@ public class TodoTaskController {
 		result.put("rtnCode", "-1");
 		result.put("rtnMsg", "获取下一步任务节点失败!");
 		BufferedReader streamReader=null;
+		response.setContentType("application/json;charset=utf-8");
 		try {
     		// 获取输入流
     		 streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
@@ -347,6 +349,7 @@ public class TodoTaskController {
 		result.put("rtnCode", "-1");
 		result.put("rtnMsg", "获取所有流程节点失败!");
 		BufferedReader streamReader=null;
+		response.setContentType("application/json;charset=utf-8");
 		try {
     		// 获取输入流
     		 streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
