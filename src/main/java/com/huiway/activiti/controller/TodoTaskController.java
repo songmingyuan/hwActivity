@@ -73,7 +73,6 @@ public class TodoTaskController {
 		JSONObject result = new JSONObject();
 		result.put("rtnCode", "-1");
 		result.put("rtnMsg", "完成任务失败!");
-		result.put("procDefId", null);
 		BufferedReader streamReader=null;
 		try {
     		// 获取输入流
@@ -168,7 +167,7 @@ public class TodoTaskController {
     		            
     		            result.put("rtnCode", "-1");
         				result.put("rtnMsg", "完成任务失败，找不到任务!");
-        				
+        				throw new MyExceptions("完成任务失败，找不到任务!");
     		        }
     			
     		       
@@ -198,67 +197,6 @@ public class TodoTaskController {
     		
     	}
 		
-		
-		
-		
-		
-//		if (results.hasErrors()) {
-//			return CommonUtils.initErrors(results);
-//		}
-//		
-//		String taskId = requestDTO.getTaskId();
-//		String judge = requestDTO.getJudge();
-//		String assignee = requestDTO.getAssignee();
-//		String groupIds = requestDTO.getGroupIds();
-//		
-//		RestResponse response = new RestResponse();
-//		ActivitiDto dto = new ActivitiDto();
-//		List<BpmActRuTask> bpmActRuTaskList = new ArrayList<BpmActRuTask>();
-//		
-//        Task task = taskService.createTaskQuery().taskId(taskId) // 根据任务id查询
-//                .singleResult();
-//        if (task != null) {
-//            String processInstanceId = task.getProcessInstanceId();
-//            String processDefinitionId = task.getProcessDefinitionId();
-//
-//            boolean modelSuspended = repositoryService.createProcessDefinitionQuery()
-//                    .processDefinitionId(processDefinitionId).singleResult().isSuspended();
-//            if (modelSuspended) {
-//                throw new ValidationError("This activity model has already be suspended.");
-//            }
-//
-//            boolean instSuspended = runtimeService.createProcessInstanceQuery().processInstanceId(processInstanceId)
-//                    .singleResult().isSuspended();
-//            if (instSuspended) {
-//                throw new ValidationError("This activity instance has already be suspended.");
-//            }
-//            
-//            Map<String,Object> map = new HashMap<String,Object>();
-//            if(StringUtils.isNoneEmpty(judge)) {
-//            	map.put("judge", judge);
-//            }
-//            if(StringUtils.isNoneEmpty(assignee)) {
-//            	map.put("assignee", assignee);
-//            }
-//            if(StringUtils.isNoneEmpty(groupIds)) {
-//            	map.put("groupIds", groupIds);
-//            }
-//            taskService.complete(taskId,map);
-//
-//            bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService.listByMap
-//            		(ImmutableMap.of("PROC_INST_ID_", processInstanceId));
-//      
-//            dto.setProcDefId(processDefinitionId);
-//            dto.setProcInstId(processInstanceId);
-//            response.setBean(dto);
-//            response.setBeans(bpmActRuTaskList);
-//        } else {
-//            response.setRtnCode(CodeConstant.FAIL);
-//            response.setMessage("task not found");
-//            return response;
-//        }
-//		
-//		return response;
 	}
 	
     @ApiOperation(value = "获取待办任务", notes = "根据流程实例id获取待办任务")
@@ -278,71 +216,205 @@ public class TodoTaskController {
 	}
     
     @ApiOperation(value = "获取下一步任务节点", notes = "获取下一步任务节点")
-    @RequestMapping(value = "/next-node", method=RequestMethod.GET)
-    public RestResponse getNextTaskNode(@Valid NextTaskNodeRequestDTO requestDTO,BindingResult results) {
-		if (results.hasErrors()) {
-			return CommonUtils.initErrors(results);
-		}
+    //@RequestMapping(value = "/next-node", method=RequestMethod.GET)
+    @RequestMapping(value = "/next-node", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+    public void getNextTaskNode(HttpServletRequest request,HttpServletResponse response) {
+    	JSONObject jsonParam=null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "获取下一步任务节点失败!");
+		BufferedReader streamReader=null;
+		try {
+    		// 获取输入流
+    		 streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+    		// 写入数据到Stringbuilder
+    		StringBuilder sb = new StringBuilder();
+    		String line = null;
+    		while ((line = streamReader.readLine()) != null) {
+    			sb.append(line);
+    		}
+    		log.info("参数"+sb);
+    		jsonParam = JSONObject.parseObject(sb.toString());
+    		if(jsonParam!=null){
+    			String taskId=jsonParam.getString("taskId");
+    			if(StringUtils.isBlank(taskId)){
+    				throw new MyExceptions("获取下一步任务节点,taskId不能为空！");
+    			}
+    	    	Task task = taskService.createTaskQuery() // 创建任务查询
+    	                .taskId(taskId) // 根据任务id查询
+    	                .singleResult();
+    	        String processInstanceId = "";
+    	        String processDefinitionId="";
+    	        // 当前流程节点Id信息
+    	        String activityId = "";
+    	        if (task != null) {
+    	            processInstanceId = task.getProcessInstanceId();
+    	            activityId = task.getTaskDefinitionKey();
+    	             processDefinitionId = task.getProcessDefinitionId();
+    	        }  else {
+    	        	result.put("rtnCode", "-1");
+    	    		result.put("rtnMsg", "获取下一步任务节点失败，taskId不可用");
+    	    		throw new MyExceptions("获取下一步任务节点失败,taskId不可用！");
+    	        }
+
+    	        // 获取流程发布Id信息
+    	        String definitionId = runtimeService.createProcessInstanceQuery().processInstanceId(processInstanceId)
+    	                .singleResult().getProcessDefinitionId();
+
+    	        BpmnModel model = repositoryService.getBpmnModel(definitionId);
+    	        List<SequenceFlow> sequenceFlowList;
+    	        FlowElement activeEl = model.getMainProcess().getFlowElement(activityId);
+    	        List<Map<String,String>>  maplist=new ArrayList<>();
+    	        BpmnModel model2 = repositoryService.getBpmnModel(processDefinitionId);
+ 		       if(model2 != null) {
+ 		           Collection<FlowElement> flowElements = model2.getMainProcess().getFlowElements();
+ 		           for(FlowElement e : flowElements) {
+ 		        	   Map<String,String> map=new HashMap<>();
+ 		        	   map.put( "id", e.getId());
+ 		        	   map.put( "name", e.getName());
+ 		        	   maplist.add(map);
+ 		           }
+ 		        //   System.out.println("flowelement id:" + e.getId() + "  name:" + e.getName() + "   class:" + e.getClass().toString());
+ 		        }
+    	        List<Map<String,String>> list = new ArrayList<Map<String,String>>();
+    	        if (activeEl instanceof org.activiti.bpmn.model.UserTask) { // 节点
+    	            sequenceFlowList = ((org.activiti.bpmn.model.UserTask) activeEl).getOutgoingFlows();// 流出信息
+    	        	for(SequenceFlow sequenceFlow : sequenceFlowList) {
+    	        		 Map<String,String> maps=new HashMap<>();
+    	        		 maps.put( "condition", sequenceFlow.getConditionExpression());
+    	        		 maps.put( "targetRef", sequenceFlow.getTargetRef());
+    	        		 
+    	        		 for(Map<String,String> m :maplist){
+    	        			 if(sequenceFlow.getTargetRef().equals(m.get("id").toString())){
+    	        				 maps.put( "name", m.get("name").toString());
+    	        			 }
+    	        			 
+    	        		 }
+    	        		 list.add(maps);
+    	        		 
+    	        	}
+    	        	
+    	        	
+    	        	
+    	        	
+    	        	
+    	        }  
+    	        
+ 		        result.put("rtnCode", "1");
+				result.put("rtnMsg", "获取下一步任务节点成功!");
+				result.put("bean", null);
+				result.put("beans", list);
+				 log.info("获取下一步任务节点成功"+result.toString());
+    	        
+    		        
+    		}
+    		
+    		
+    		// 直接将json信息打印出来
+    		//System.out.println(jsonParam.toJSONString());
+    	} catch (Exception e) {
+    		e.printStackTrace();
+    		log.info("获取下一步任务节点失败"+e.getMessage());
+    	}finally{
+    		try{
+    			if(null!=streamReader){
+    				streamReader.close();
+    			}
+    			String result2=result.toString();
+    			PrintWriter p=response.getWriter();
+    			p.println(result2);
+    			p.flush();
+    			p.close();
+    		}catch(Exception e){
+    			e.getStackTrace();
+    			log.info("获取下一步任务节点失败"+e.getMessage());
+    		}
+    		
+    	}
     	
-    	RestResponse response = new RestResponse();
-    	Task task = taskService.createTaskQuery() // 创建任务查询
-                .taskId(requestDTO.getTaskId()) // 根据任务id查询
-                .singleResult();
-        String processInstanceId = "";
-        // 当前流程节点Id信息
-        String activityId = "";
-        if (task != null) {
-            processInstanceId = task.getProcessInstanceId();
-            activityId = task.getTaskDefinitionKey();
-        }  else {
-        	response.setRtnCode(CodeConstant.FAIL);
-        	response.setMessage("taskId 不可用");
-        	return response;
-        }
+    	
+    	
 
-        // 获取流程发布Id信息
-        String definitionId = runtimeService.createProcessInstanceQuery().processInstanceId(processInstanceId)
-                .singleResult().getProcessDefinitionId();
-
-        BpmnModel model = repositoryService.getBpmnModel(definitionId);
-        List<SequenceFlow> sequenceFlowList;
-        FlowElement activeEl = model.getMainProcess().getFlowElement(activityId);
-        
-        List<NextTaskNodeResponseDTO> list = new ArrayList<NextTaskNodeResponseDTO>();
-        if (activeEl instanceof org.activiti.bpmn.model.UserTask) { // 节点
-            sequenceFlowList = ((org.activiti.bpmn.model.UserTask) activeEl).getOutgoingFlows();// 流出信息
-        	for(SequenceFlow sequenceFlow : sequenceFlowList) {
-        		NextTaskNodeResponseDTO nextTaskNodeResponseDTO = new NextTaskNodeResponseDTO();
-        		nextTaskNodeResponseDTO.setConditionExpression(sequenceFlow.getConditionExpression());
-        		nextTaskNodeResponseDTO.setTaskDefKey(sequenceFlow.getTargetRef());
-        		list.add(nextTaskNodeResponseDTO);
-        	}
-        	response.setBeans(list);
-        }
-        
-        return response;
     }
 	
     @ApiOperation(value = "获取所有流程节点", notes = "获取所有流程节点")
-    @RequestMapping(value = "/get-procdef", method=RequestMethod.GET)
-	public RestResponse getTodoTaskNode(HttpServletRequest request){
-		RestResponse response = new RestResponse("-1","参数错误！");
-		String procdefId = request.getParameter("procdefId");
-		if(StringUtils.isBlank(procdefId)){
-			response.setRtnCode("-1");
-			response.setMessage("procdefId不能为空！");
-			return response;
-		}
-       BpmnModel model = repositoryService.getBpmnModel(procdefId);
-       if(model != null) {
-           Collection<FlowElement> flowElements = model.getMainProcess().getFlowElements();
-           for(FlowElement e : flowElements) {
-           System.out.println("flowelement id:" + e.getId() + "  name:" + e.getName() + "   class:" + e.getClass().toString());
-        }
-        return response;
-	   }
-       
-       return null;
+     //@RequestMapping(value = "/get-procdef", method=RequestMethod.GET)
+    @RequestMapping(value = "/get-procdef", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+	public void getTodoTaskNode(HttpServletRequest request,HttpServletResponse response){
+    	JSONObject jsonParam=null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "获取所有流程节点失败!");
+		BufferedReader streamReader=null;
+		try {
+    		// 获取输入流
+    		 streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+    		// 写入数据到Stringbuilder
+    		StringBuilder sb = new StringBuilder();
+    		String line = null;
+    		while ((line = streamReader.readLine()) != null) {
+    			sb.append(line);
+    		}
+    		log.info("参数"+sb);
+    		jsonParam = JSONObject.parseObject(sb.toString());
+    		List<Map<String,String>>  list=new ArrayList<>();
+    		if(jsonParam!=null){
+    			String procdefId=jsonParam.getString("procdefId");
+    			if(StringUtils.isBlank(procdefId)){
+    				result.put("rtnCode", "-1");
+    				result.put("rtnMsg", "获取所有流程节点失败,procdefId不能为空");
+    				throw new MyExceptions("获取下一步任务节点失败,procdefId不能为空！");
+    			}
+    			
+    			BpmnModel model = repositoryService.getBpmnModel(procdefId);
+    		       if(model != null) {
+    		           Collection<FlowElement> flowElements = model.getMainProcess().getFlowElements();
+    		           for(FlowElement e : flowElements) {
+    		        	   Map<String,String> map=new HashMap<>();
+    		        	   map.put( "id", e.getId());
+    		        	   map.put( "name", e.getName());
+    		        	   list.add(map);
+    		           }
+    		        //   System.out.println("flowelement id:" + e.getId() + "  name:" + e.getName() + "   class:" + e.getClass().toString());
+    		        }
+    		        
+    		}
+    		
+    		    result.put("rtnCode", "1");
+				result.put("rtnMsg", "获取所有流程节点成功!");
+				result.put("bean", null);
+				result.put("beans", list);
+				 log.info("获取所有流程节点"+result.toString());
+    		
+    		
+    		// 直接将json信息打印出来
+    		//System.out.println(jsonParam.toJSONString());
+    	} catch (Exception e) {
+    		e.printStackTrace();
+    		log.info("获取所有流程节点失败"+e.getMessage());
+    	}finally{
+    		try{
+    			if(null!=streamReader){
+    				streamReader.close();
+    			}
+    			String result2=result.toString();
+    			PrintWriter p=response.getWriter();
+    			p.println(result2);
+    			p.flush();
+    			p.close();
+    		}catch(Exception e){
+    			e.getStackTrace();
+    			log.info("获取所有流程节点失败"+e.getMessage());
+    		}
+    		
+    	}
+    	
+    	
+    	
+    	
+    	
     }    
        
 }

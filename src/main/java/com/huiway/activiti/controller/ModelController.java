@@ -103,7 +103,7 @@ public class ModelController {
     		        
     		        //
     		        if(StringUtils.isBlank(processDefinition.getKey())){
-    		        	throw new MyExceptions("部署失败,tenantId不能为空！");
+    		        	throw new MyExceptions("部署失败,key不能为空！");
     		        }
     		       
     		        result.put("rtnCode", "1");
