@@ -92,6 +92,7 @@ public class ActivityTaskController {
 		result.put("rtnMsg", "部署失败!");
 		result.put("procDefId", null);
 		BufferedReader streamReader=null;
+		response.setContentType("application/json;charset=utf-8");
 		try {
     		// 获取输入流
     		 streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));

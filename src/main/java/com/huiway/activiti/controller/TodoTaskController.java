@@ -94,12 +94,12 @@ public class TodoTaskController {
     			}
     			String assignee=jsonParam.getString("assignee");
     			String groupIds=jsonParam.getString("groupIds");
-    			if(StringUtils.isBlank(assignee)){
-    				if(StringUtils.isBlank(groupIds)){
-        				throw new MyExceptions("完成任务失败,groupIds不能为空！");
-        			}
-    			}
-    			if(StringUtils.isBlank(groupIds)){
+//    			if(StringUtils.isBlank(assignee)){
+//    				if(StringUtils.isBlank(groupIds)){
+//        				throw new MyExceptions("完成任务失败,groupIds不能为空！");
+//        			}
+//    			}
+    			if(StringUtils.isEmpty(groupIds)){
     				if(StringUtils.isBlank(assignee)){
         				throw new MyExceptions("完成任务失败,assignee不能为空！");
         			}

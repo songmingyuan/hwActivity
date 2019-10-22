@@ -2,6 +2,7 @@ package com.huiway.activiti.controller;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -139,15 +140,94 @@ public class ModelController {
 
 	
 	@ApiOperation(value = "获取流程图",notes = "根据流程定义id获取流程图")
-	@RequestMapping(value = "/diagram", method=RequestMethod.GET)
-	public ModelDiagramDTO diagram(@ApiParam("流程定义id") @RequestParam String processDefinitionId) {
-		ModelDiagramDTO dto = new ModelDiagramDTO();
-        ProcessDiagramGenerator processDiagramGenerator = processEngineConfiguration.getProcessDiagramGenerator();
-        BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinitionId);
-        InputStream imageStream = processDiagramGenerator.generateDiagram(bpmnModel, "png", new ArrayList<String>(),
-                new ArrayList<String>(), "宋体", "微软雅黑", "黑体", null, 2.0); 
-        dto.setDiagramResource("data:image/jpeg;base64," + CommonUtils.getImageStr(imageStream));
-		return dto;
+	//@RequestMapping(value = "/diagram", method=RequestMethod.GET)
+	@RequestMapping(value = "/diagram", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+	public void diagram(HttpServletRequest request,HttpServletResponse response) {
+		response.setContentType("application/json;charset=utf-8");
+		JSONObject jsonParam=null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "部署失败!");
+		result.put("procDefId", null);
+		BufferedReader streamReader=null;
+		try {
+    		// 获取输入流
+    		 streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+    		// 写入数据到Stringbuilder
+    		StringBuilder sb = new StringBuilder();
+    		String line = null;
+    		while ((line = streamReader.readLine()) != null) {
+    			sb.append(line);
+    		}
+    		log.info("参数"+sb);
+    		jsonParam = JSONObject.parseObject(sb.toString());
+    		InputStream inputStream =null;
+    		if(jsonParam!=null){
+    			String processDefinitionId=jsonParam.getString("processDefinitionId");
+    			if(StringUtils.isBlank(processDefinitionId)){
+    				throw new MyExceptions("获取流程图失败,processDefinitionId不能为空！");
+    			}
+
+    			
+    	        ProcessDiagramGenerator processDiagramGenerator = processEngineConfiguration.getProcessDiagramGenerator();
+    	        BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinitionId);
+    	        inputStream = processDiagramGenerator.generateDiagram(bpmnModel, "png", new ArrayList<String>(),
+    	                new ArrayList<String>(), "宋体", "微软雅黑", "黑体", null, 2.0); 
+    	        //dto.setDiagramResource("data:image/jpeg;base64," + CommonUtils.getImageStr(imageStream));
+    		        
+    	        
+ 			   ByteArrayOutputStream bos = new ByteArrayOutputStream();
+ 			   byte[] buffer=new byte[1024*10];
+ 			   int n=0;
+ 			 
+ 				while(-1!=(n=inputStream.read(buffer))){
+ 					   bos.write(buffer,0,n);
+ 				   }
+ 				
+ 				
+ 				byte[] data =bos.toByteArray();
+ 				
+ 				   String str=new String(data,"ISO-8859-1");
+ 				//  result.put("fileName", file.getOriginalFilename());
+ 				    result.put("file", str);
+    	        
+    	        
+    	            result.put("rtnCode", "1");
+    				result.put("rtnMsg", "获取流程图成功!");
+    				result.put("file",str);
+    				//result.put("file", CommonUtils.getImageStr(inputStream));
+    				 log.info("获取流程图成功"+result.toString());
+    		}
+    		
+    		
+    	} catch (Exception e) {
+    		e.printStackTrace();
+    		log.info("获取流程图失败"+e.getMessage());
+    	}finally{
+    		try{
+    			if(null!=streamReader){
+    				streamReader.close();
+    			}
+    			String result2=result.toString();
+    			PrintWriter p=response.getWriter();
+    			p.println(result2);
+    			p.flush();
+    			p.close();
+    		}catch(Exception e){
+    			e.getStackTrace();
+    			log.info("获取流程图失败"+e.getMessage());
+    		}
+    		
+    	}
+//		
+//		ModelDiagramDTO dto = new ModelDiagramDTO();
+//        ProcessDiagramGenerator processDiagramGenerator = processEngineConfiguration.getProcessDiagramGenerator();
+//        BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinitionId);
+//       InputStream imageStream = processDiagramGenerator.generateDiagram(bpmnModel, "png", new ArrayList<String>(),
+//                new ArrayList<String>(), "宋体", "微软雅黑", "黑体", null, 2.0); 
+//        dto.setDiagramResource("data:image/jpeg;base64," + CommonUtils.getImageStr(imageStream));
+//		return dto;
 	}
 	
 	@ApiOperation(value = "获取流程节点",notes = "根据流程定义id获取流程节点")
