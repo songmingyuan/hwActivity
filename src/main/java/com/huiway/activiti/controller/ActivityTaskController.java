@@ -201,21 +201,21 @@ public class ActivityTaskController {
     			if(StringUtils.isBlank(procInstId)){
     				throw new MyExceptions("获取流程图失败,procInstId不能为空！");
     			}
-    			inputStream=getDiagramImageStream(procInstId);
+    			String str=getDiagram(procInstId);
     			
     			
-    			 ByteArrayOutputStream bos = new ByteArrayOutputStream();
-   			   byte[] buffer=new byte[1024*10];
-   			   int n=0;
-   			 
-   				while(-1!=(n=inputStream.read(buffer))){
-   					   bos.write(buffer,0,n);
-   				   }
-   				
-   				
-   				byte[] data =bos.toByteArray();
-   				
-   				String str=new String(data,"ISO-8859-1");
+//    			 ByteArrayOutputStream bos = new ByteArrayOutputStream();
+//   			   byte[] buffer=new byte[1024*10];
+//   			   int n=0;
+//   			 
+//   				while(-1!=(n=inputStream.read(buffer))){
+//   					   bos.write(buffer,0,n);
+//   				   }
+//   				
+//   				
+//   				byte[] data =bos.toByteArray();
+//   				
+//   				String str=new String(data,"ISO-8859-1");
     	        result.put("rtnCode", "1");
     	        result.put("file",str);
     			result.put("rtnMsg", "获取流程图成功!");
@@ -367,33 +367,7 @@ public class ActivityTaskController {
 	    return response;
 	}
 	
-	/**
-     * 获取流程图片base64字符串
-     * 
-     * @param procInctId 流程实例id
-     * @return
-     */
-    private InputStream getDiagramImageStream(String procInctId) {
-        // 获取当前任务流程图片
-        HistoricProcessInstance hip = historyService.createHistoricProcessInstanceQuery().processInstanceId(procInctId)
-                .singleResult(); // 获取历史流程实例
-        List<HistoricActivityInstance> hai = historyService.createHistoricActivityInstanceQuery()
-                .processInstanceId(procInctId).orderByHistoricActivityInstanceId().asc().list(); // 获取流程中已经执行的节点，按照执行先后顺序排序
-        List<String> executedActivityIdList = new ArrayList<String>(); // 构造已执行的节点ID集合
-        for (HistoricActivityInstance activityInstance : hai) {
-            executedActivityIdList.add(activityInstance.getActivityId());
-        }
-        BpmnModel bpmnModel = repositoryService.getBpmnModel(hip.getProcessDefinitionId()); // 获取bpmnModel
-        List<String> flowIds = this.getExecutedFlows(bpmnModel, hai); // 获取流程已发生流转的线ID集合
-        // List<String> flowIds = new ArrayList<String>();
-        ProcessDiagramGenerator processDiagramGenerator = processEngine.getProcessEngineConfiguration()
-                .getProcessDiagramGenerator();
-        InputStream imageStream = processDiagramGenerator.generateDiagram(bpmnModel, "png", executedActivityIdList,
-                flowIds, "宋体", "微软雅黑", "黑体", null, 2.0); // 使用默认配置获得流程图表生成器，并生成追踪图片字符流
-       // return "data:image/jpeg;base64," + CommonUtils.getImageStr(imageStream);
-        
-        return imageStream;
-    }
+
     /**
      * 获取流程图片base64字符串
      * 

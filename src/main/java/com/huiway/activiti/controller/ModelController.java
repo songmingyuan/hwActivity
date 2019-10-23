@@ -174,25 +174,25 @@ public class ModelController {
     	                new ArrayList<String>(), "宋体", "微软雅黑", "黑体", null, 2.0); 
     	        //dto.setDiagramResource("data:image/jpeg;base64," + CommonUtils.getImageStr(imageStream));
     		        
-    	        
- 			   ByteArrayOutputStream bos = new ByteArrayOutputStream();
- 			   byte[] buffer=new byte[1024*10];
- 			   int n=0;
- 			 
- 				while(-1!=(n=inputStream.read(buffer))){
- 					   bos.write(buffer,0,n);
- 				   }
- 				
- 				
- 				byte[] data =bos.toByteArray();
- 				
- 				   String str=new String(data,"ISO-8859-1");
- 				//  result.put("fileName", file.getOriginalFilename());
- 				    result.put("file", str);
 //    	        
+// 			   ByteArrayOutputStream bos = new ByteArrayOutputStream();
+// 			   byte[] buffer=new byte[1024*10];
+// 			   int n=0;
+// 			 
+// 				while(-1!=(n=inputStream.read(buffer))){
+// 					   bos.write(buffer,0,n);
+// 				   }
+// 				
+// 				
+// 				byte[] data =bos.toByteArray();
+// 				
+// 				   String str=new String(data,"ISO-8859-1");
+// 				//  result.put("fileName", file.getOriginalFilename());
+// 				    result.put("file", str);
+////    	        
     	        
     	            result.put("rtnCode", "1");
-    	        	result.put("file",str);
+    	        	result.put("file","data:image/jpeg;base64," + CommonUtils.getImageStr(inputStream));
     				result.put("rtnMsg", "获取流程图成功!");
     			
     				//result.put("file", "data:image/jpeg;base64," +CommonUtils.getImageStr(inputStream));
