@@ -20,6 +20,8 @@ import org.activiti.engine.HistoryService;
 import org.activiti.engine.RepositoryService;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
+import org.activiti.engine.history.HistoricActivityInstance;
+import org.activiti.engine.history.HistoricTaskInstance;
 import org.activiti.engine.runtime.ProcessInstance;
 import org.activiti.engine.task.Task;
 import org.apache.commons.lang3.StringUtils;
@@ -103,6 +105,7 @@ public class TodoTaskController {
         				throw new MyExceptions("完成任务失败,assignee不能为空！");
         			}
     			}
+    			String nodeCode=jsonParam.getString("nodeCode");
     			String taskId=jsonParam.getString("taskId");
     			if(StringUtils.isBlank(taskId)){
     				throw new MyExceptions("完成任务失败,taskId不能为空！");
@@ -150,9 +153,26 @@ public class TodoTaskController {
     		            }
     		            taskService.complete(taskId,map);
 
+    		            
+    		       
     		            bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService.listByMap
     		            		(ImmutableMap.of("PROC_INST_ID_", processInstanceId));
-    		      
+    		          if(StringUtils.isNoneBlank(nodeCode)){
+    		        	  if(nodeCode.startsWith("endevent")){
+
+      		                List<HistoricActivityInstance> htiList =historyService.createHistoricActivityInstanceQuery().processInstanceId(processInstanceId).orderByHistoricActivityInstanceStartTime().desc().list();
+      		            	
+      		                HistoricActivityInstance hh=htiList.get(0);
+      	    		            BpmActRuTask bb =new BpmActRuTask();
+      	    		            bb.setName(hh.getActivityName());
+      	    		            bb.setTaskDefKey(hh.getActivityId());
+      	    		            bb.setProcDefId(hh.getProcessDefinitionId());
+      	    		            bb.setProcInstId(hh.getProcessInstanceId());
+      	    		            bpmActRuTaskList.add(bb);	
+      		            }
+    		          }
+    		           
+    		          
     		            dto.setProcDefId(processDefinitionId);
     		            dto.setProcInstId(processInstanceId);
     		            result.put("rtnCode", "1");
