@@ -57,7 +57,6 @@ public class ModelController {
 	private StandaloneProcessEngineConfiguration processEngineConfiguration;
 	@ApiOperation(value = "部署流程模型")
 	@RequestMapping(value = "/deploy", method=RequestMethod.POST,produces="application/json;charset=utf-8")
-	//@PostMapping (value = "/deploy")
 	public void deploy(HttpServletRequest request,HttpServletResponse response) {
 		response.setContentType("application/json;charset=utf-8");
 		JSONObject jsonParam=null;
@@ -140,7 +139,6 @@ public class ModelController {
 
 	
 	@ApiOperation(value = "获取流程图",notes = "根据流程定义id获取流程图")
-	//@RequestMapping(value = "/diagram", method=RequestMethod.GET)
 	@RequestMapping(value = "/diagram", method=RequestMethod.POST,produces="application/json;charset=utf-8")
 	public void diagram(HttpServletRequest request,HttpServletResponse response) {
 		response.setContentType("application/json;charset=utf-8");
@@ -177,26 +175,27 @@ public class ModelController {
     	        //dto.setDiagramResource("data:image/jpeg;base64," + CommonUtils.getImageStr(imageStream));
     		        
     	        
-// 			   ByteArrayOutputStream bos = new ByteArrayOutputStream();
-// 			   byte[] buffer=new byte[1024*10];
-// 			   int n=0;
-// 			 
-// 				while(-1!=(n=inputStream.read(buffer))){
-// 					   bos.write(buffer,0,n);
-// 				   }
-// 				
-// 				
-// 				byte[] data =bos.toByteArray();
-// 				
-// 				   String str=new String(data,"ISO-8859-1");
-// 				//  result.put("fileName", file.getOriginalFilename());
-// 				    result.put("file", str);
+ 			   ByteArrayOutputStream bos = new ByteArrayOutputStream();
+ 			   byte[] buffer=new byte[1024*10];
+ 			   int n=0;
+ 			 
+ 				while(-1!=(n=inputStream.read(buffer))){
+ 					   bos.write(buffer,0,n);
+ 				   }
+ 				
+ 				
+ 				byte[] data =bos.toByteArray();
+ 				
+ 				   String str=new String(data,"ISO-8859-1");
+ 				//  result.put("fileName", file.getOriginalFilename());
+ 				    result.put("file", str);
 //    	        
     	        
     	            result.put("rtnCode", "1");
+    	        	result.put("file",str);
     				result.put("rtnMsg", "获取流程图成功!");
-    				//result.put("file",str);
-    				result.put("file", CommonUtils.getImageStr(inputStream));
+    			
+    				//result.put("file", "data:image/jpeg;base64," +CommonUtils.getImageStr(inputStream));
     				 log.info("获取流程图成功"+result.toString());
     		}
     		
@@ -220,14 +219,6 @@ public class ModelController {
     		}
     		
     	}
-//		
-//		ModelDiagramDTO dto = new ModelDiagramDTO();
-//        ProcessDiagramGenerator processDiagramGenerator = processEngineConfiguration.getProcessDiagramGenerator();
-//        BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinitionId);
-//       InputStream imageStream = processDiagramGenerator.generateDiagram(bpmnModel, "png", new ArrayList<String>(),
-//                new ArrayList<String>(), "宋体", "微软雅黑", "黑体", null, 2.0); 
-//        dto.setDiagramResource("data:image/jpeg;base64," + CommonUtils.getImageStr(imageStream));
-//		return dto;
 	}
 	
 	@ApiOperation(value = "获取流程节点",notes = "根据流程定义id获取流程节点")

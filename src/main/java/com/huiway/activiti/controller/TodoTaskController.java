@@ -66,7 +66,6 @@ public class TodoTaskController {
 	HistoryService historyService;
 	
 	@ApiOperation(value = "完成任务",notes = "完成任务")
-	//@RequestMapping(value = "/complete", method=RequestMethod.GET)
 	@RequestMapping(value = "/complete", method=RequestMethod.POST,produces="application/json;charset=utf-8")
 	public void completeTask(HttpServletRequest request,HttpServletResponse response) {
 		JSONObject jsonParam=null;
@@ -217,7 +216,6 @@ public class TodoTaskController {
 	}
     
     @ApiOperation(value = "获取下一步任务节点", notes = "获取下一步任务节点")
-    //@RequestMapping(value = "/next-node", method=RequestMethod.GET)
     @RequestMapping(value = "/next-node", method=RequestMethod.POST,produces="application/json;charset=utf-8")
     public void getNextTaskNode(HttpServletRequest request,HttpServletResponse response) {
     	JSONObject jsonParam=null;
