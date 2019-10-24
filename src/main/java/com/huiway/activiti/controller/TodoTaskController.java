@@ -17,6 +17,7 @@ import org.activiti.bpmn.model.BpmnModel;
 import org.activiti.bpmn.model.FlowElement;
 import org.activiti.bpmn.model.SequenceFlow;
 import org.activiti.engine.HistoryService;
+import org.activiti.engine.ProcessEngine;
 import org.activiti.engine.RepositoryService;
 import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
@@ -66,6 +67,8 @@ public class TodoTaskController {
 	BpmActivityInterface bpmActivityService;
 	@Autowired
 	HistoryService historyService;
+	@Autowired
+	private ProcessEngine processEngine;
 	
 	@ApiOperation(value = "完成任务",notes = "完成任务")
 	@RequestMapping(value = "/complete", method=RequestMethod.POST,produces="application/json;charset=utf-8")
@@ -170,6 +173,9 @@ public class TodoTaskController {
       	    		            bb.setProcInstId(hh.getProcessInstanceId());
       	    		            bpmActRuTaskList.add(bb);	
       		            }
+    		        	
+    		        	processEngine.getRuntimeService().deleteProcessInstance(processInstanceId, "结束");
+    		        	  
     		          }
     		           
     		          
