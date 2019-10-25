@@ -81,6 +81,7 @@ public class ActivityTaskController {
 	@Autowired
 	BpmActivityInterface bpmActivityService;
 	
+	
 	@ApiOperation(value = "启动流程实例")
 	@RequestMapping(value = "/startUp", method=RequestMethod.POST,produces="application/json;charset=utf-8")
 	public void create(HttpServletRequest request,HttpServletResponse response) {
@@ -481,4 +482,77 @@ public class ActivityTaskController {
         return flowIdList;
     }
 	
+    
+    
+    
+
+    @ApiOperation(value = "删除流程任务", notes = "删除流程任务")
+	@RequestMapping(value = "/delete", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+    public void deleted(HttpServletRequest request,HttpServletResponse response) {
+
+		JSONObject jsonParam=null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "删除流程任务失败!");
+		result.put("procDefId", null);
+		BufferedReader streamReader=null;
+		response.setContentType("application/json;charset=utf-8");
+		try {
+    		// 获取输入流
+    		 streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+    		// 写入数据到Stringbuilder
+    		StringBuilder sb = new StringBuilder();
+    		String line = null;
+    		while ((line = streamReader.readLine()) != null) {
+    			sb.append(line);
+    		}
+    		log.info("参数"+sb);
+    		jsonParam = JSONObject.parseObject(sb.toString());
+    		if(jsonParam!=null){
+    			String procInstId=jsonParam.getString("procInstId");
+    			if(StringUtils.isBlank(procInstId)){
+    				throw new MyExceptions("删除流程任务,procInstId不能为空！");
+    			}
+    			 processEngine.getRuntimeService().deleteProcessInstance(procInstId, "");
+    			
+    			
+    		       
+    		        result.put("rtnCode", "1");
+    				result.put("rtnMsg", "删除成功!");
+    				result.put("bean", null);
+    				result.put("beans", null);
+    				 log.info("删除流程任务成功"+result.toString());
+    		}
+    		
+    		
+    		// 直接将json信息打印出来
+    		//System.out.println(jsonParam.toJSONString());
+    	} catch (Exception e) {
+    		e.printStackTrace();
+    		log.info("删除流程任务失败"+e.getMessage());
+    	}finally{
+    		try{
+    			if(null!=streamReader){
+    				streamReader.close();
+    			}
+    			String result2=result.toString();
+    			PrintWriter p=response.getWriter();
+    			p.println(result2);
+    			p.flush();
+    			p.close();
+    		}catch(Exception e){
+    			e.getStackTrace();
+    			log.info("删除流程任务失败"+e.getMessage());
+    		}
+    		
+    	}
+		
+    	
+    	
+    	
+       
+    }
+
+    
 }

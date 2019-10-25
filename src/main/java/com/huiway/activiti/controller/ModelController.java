@@ -172,30 +172,10 @@ public class ModelController {
     	        BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinitionId);
     	        inputStream = processDiagramGenerator.generateDiagram(bpmnModel, "png", new ArrayList<String>(),
     	                new ArrayList<String>(), "宋体", "微软雅黑", "黑体", null, 2.0); 
-    	        //dto.setDiagramResource("data:image/jpeg;base64," + CommonUtils.getImageStr(imageStream));
-    		        
-//    	        
-// 			   ByteArrayOutputStream bos = new ByteArrayOutputStream();
-// 			   byte[] buffer=new byte[1024*10];
-// 			   int n=0;
-// 			 
-// 				while(-1!=(n=inputStream.read(buffer))){
-// 					   bos.write(buffer,0,n);
-// 				   }
-// 				
-// 				
-// 				byte[] data =bos.toByteArray();
-// 				
-// 				   String str=new String(data,"ISO-8859-1");
-// 				//  result.put("fileName", file.getOriginalFilename());
-// 				    result.put("file", str);
-////    	        
-    	        
     	            result.put("rtnCode", "1");
     	        	result.put("file","data:image/jpeg;base64," + CommonUtils.getImageStr(inputStream));
     				result.put("rtnMsg", "获取流程图成功!");
     			
-    				//result.put("file", "data:image/jpeg;base64," +CommonUtils.getImageStr(inputStream));
     				 log.info("获取流程图成功"+result.toString());
     		}
     		
@@ -220,6 +200,71 @@ public class ModelController {
     		
     	}
 	}
+	
+	
+	    @ApiOperation(value = "移除已部署的流程模型", notes = "根据流程部署id移除已经部署的模型")
+	    @RequestMapping(value = "/delete", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+	    public void delete(HttpServletRequest request,HttpServletResponse response){
+	    	
+	    	response.setContentType("application/json;charset=utf-8");
+			JSONObject jsonParam=null;
+			JSONObject result = new JSONObject();
+			result.put("rtnCode", "-1");
+			result.put("rtnMsg", "移除已部署的流程失败!");
+			result.put("procDefId", null);
+			BufferedReader streamReader=null;
+			try {
+	    		// 获取输入流
+	    		 streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+	    		// 写入数据到Stringbuilder
+	    		StringBuilder sb = new StringBuilder();
+	    		String line = null;
+	    		while ((line = streamReader.readLine()) != null) {
+	    			sb.append(line);
+	    		}
+	    		log.info("参数"+sb);
+	    		jsonParam = JSONObject.parseObject(sb.toString());
+	    		InputStream inputStream =null;
+	    		if(jsonParam!=null){
+	    			String procdefId=jsonParam.getString("procdefId");
+	    			if(StringUtils.isBlank(procdefId)){
+	    				throw new MyExceptions("移除已部署的流程失败,procdefId不能为空！");
+	    			}
+	    			  repositoryService.deleteDeployment(procdefId, true);
+	    			  result.put("rtnCode", "1");
+	    				result.put("rtnMsg", "删除成功!");
+	    				result.put("bean", null);
+	    				result.put("beans", null);
+	    				 log.info("删除流程成功"+result.toString());
+	    		}
+	    		
+	    		
+	    	} catch (Exception e) {
+	    		e.printStackTrace();
+	    		log.info("移除已部署的流程失败"+e.getMessage());
+	    	}finally{
+	    		try{
+	    			if(null!=streamReader){
+	    				streamReader.close();
+	    			}
+	    			String result2=result.toString();
+	    			PrintWriter p=response.getWriter();
+	    			p.println(result2);
+	    			p.flush();
+	    			p.close();
+	    		}catch(Exception e){
+	    			e.getStackTrace();
+	    			log.info("移除已部署的流程失败"+e.getMessage());
+	    		}
+	    		
+	    	}
+	    	
+	      
+	       
+	    }
+	
+	
 	
 	@ApiOperation(value = "获取流程节点",notes = "根据流程定义id获取流程节点")
 	@RequestMapping(value = "/nodes", method=RequestMethod.GET)

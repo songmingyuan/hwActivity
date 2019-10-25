@@ -173,8 +173,13 @@ public class TodoTaskController {
       	    		            bb.setProcInstId(hh.getProcessInstanceId());
       	    		            bpmActRuTaskList.add(bb);	
       		            }
+    		        	  List<BpmActRuTask>  bpmActRuTaskList2 = (List<BpmActRuTask>) bpmActivityService.listByMap
+      		            		(ImmutableMap.of("PROC_INST_ID_", processInstanceId));
+    		        	  if(!bpmActRuTaskList2.isEmpty()){
+    		        		  processEngine.getRuntimeService().deleteProcessInstance(processInstanceId, "结束");
+    		        	  }
+    		        	  
     		        	
-    		        	processEngine.getRuntimeService().deleteProcessInstance(processInstanceId, "结束");
     		        	  
     		          }
     		           
