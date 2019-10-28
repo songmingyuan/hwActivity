@@ -19,6 +19,7 @@ import org.activiti.bpmn.model.FlowElement;
 import org.activiti.engine.RepositoryService;
 import org.activiti.engine.impl.cfg.StandaloneProcessEngineConfiguration;
 import org.activiti.engine.repository.Deployment;
+import org.activiti.engine.repository.Model;
 import org.activiti.engine.repository.ProcessDefinition;
 import org.activiti.image.ProcessDiagramGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -231,12 +232,40 @@ public class ModelController {
 	    			if(StringUtils.isBlank(procdefId)){
 	    				throw new MyExceptions("移除已部署的流程失败,procdefId不能为空！");
 	    			}
-	    			  repositoryService.deleteDeployment(procdefId, true);
-	    			  result.put("rtnCode", "1");
-	    				result.put("rtnMsg", "删除成功!");
-	    				result.put("bean", null);
-	    				result.put("beans", null);
-	    				 log.info("删除流程成功"+result.toString());
+//	    			String id="";
+//	    			Model model=repositoryService.getModel(procdefId);
+//	    			if(model!=null){
+//	    				id=model.getDeploymentId();
+//	    				if(StringUtils.isEmpty(id)){
+//	    					throw new MyExceptions("移除已部署的流程失败,获取不到部署Id！");
+//	    				}
+//	    			}
+	    			  List<ProcessDefinition> list = repositoryService  
+	    		            .createProcessDefinitionQuery()  
+	    		            // 查询条件  
+	    		          //  .processDefinitionKey("myMyHelloWorld")// 按照流程定义的key  
+	    		             .processDefinitionId(procdefId)//按照流程定义的ID  
+	    		            .orderByProcessDefinitionVersion().desc()// 排序  
+	    		            // 返回结果  
+	    		            // .singleResult()//返回惟一结果集  
+	    		            // .count()//返回结果集数量  
+	    		            // .listPage(firstResult, maxResults)  
+	    		            .list();
+	    			  if(!list.isEmpty()){
+	    				  String id = list.get(0).getDeploymentId();
+	    				  
+	    				  repositoryService.deleteDeployment(id,true);
+		    			  result.put("rtnCode", "1");
+		    				result.put("rtnMsg", "删除成功!");
+		    				result.put("bean", null);
+		    				result.put("beans", null);
+		    				 log.info("删除流程成功"+result.toString());
+	    			  }else{
+	    				  result.put("rtnMsg", "删除失败!");
+		    				result.put("bean", null);
+		    				result.put("beans", null);
+	    			  }
+	    			 
 	    		}
 	    		
 	    		
