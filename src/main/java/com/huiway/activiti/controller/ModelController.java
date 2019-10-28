@@ -232,29 +232,12 @@ public class ModelController {
 	    			if(StringUtils.isBlank(procdefId)){
 	    				throw new MyExceptions("移除已部署的流程失败,procdefId不能为空！");
 	    			}
-//	    			String id="";
-//	    			Model model=repositoryService.getModel(procdefId);
-//	    			if(model!=null){
-//	    				id=model.getDeploymentId();
-//	    				if(StringUtils.isEmpty(id)){
-//	    					throw new MyExceptions("移除已部署的流程失败,获取不到部署Id！");
-//	    				}
-//	    			}
-	    			  List<ProcessDefinition> list = repositoryService  
-	    		            .createProcessDefinitionQuery()  
-	    		            // 查询条件  
-	    		          //  .processDefinitionKey("myMyHelloWorld")// 按照流程定义的key  
-	    		             .processDefinitionId(procdefId)//按照流程定义的ID  
-	    		            .orderByProcessDefinitionVersion().desc()// 排序  
-	    		            // 返回结果  
-	    		            // .singleResult()//返回惟一结果集  
-	    		            // .count()//返回结果集数量  
-	    		            // .listPage(firstResult, maxResults)  
-	    		            .list();
-	    			  if(!list.isEmpty()){
-	    				  String id = list.get(0).getDeploymentId();
+	    			String deploymentId = repositoryService.getProcessDefinition(procdefId).getDeploymentId();
+	    			
+
+	    			  if(!StringUtils.isEmpty(deploymentId)){
 	    				  
-	    				  repositoryService.deleteDeployment(id,true);
+	    				  repositoryService.deleteDeployment(deploymentId,true);
 		    			  result.put("rtnCode", "1");
 		    				result.put("rtnMsg", "删除成功!");
 		    				result.put("bean", null);
@@ -296,28 +279,244 @@ public class ModelController {
 	
 	
 	@ApiOperation(value = "获取流程节点",notes = "根据流程定义id获取流程节点")
-	@RequestMapping(value = "/nodes", method=RequestMethod.GET)
-	public List<ActTaskNodeDTO> getModelNodes(@ApiParam("流程定义id") @RequestBody String processDefId) {
-	    List<ActTaskNodeDTO> response = new ArrayList<ActTaskNodeDTO>();
-        BpmnModel model = repositoryService.getBpmnModel(processDefId);
-        if (model != null) {
-            Collection<FlowElement> flowElements = model.getMainProcess().getFlowElements();
-            int index = 1;
-            for (FlowElement e : flowElements) {
-                if (e instanceof org.activiti.bpmn.model.UserTask) { // 节点
-                	ActTaskNodeDTO node = new ActTaskNodeDTO();
-                    node.setTaskDefKey(e.getId());
-                    node.setTaskNodeName(e.getName());
-                    node.setTaskCategory(((org.activiti.bpmn.model.UserTask) e).getCategory());
-                    node.setOrderNo(index++);
-                    response.add(node);
-                }
-            }
-            return response;
-        }else {
-        	//todo null
-        	return null;
-        }
+	@RequestMapping(value = "/nodes", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+	public void getModelNodes(HttpServletRequest request,HttpServletResponse response) {
+		
+		response.setContentType("application/json;charset=utf-8");
+		JSONObject jsonParam=null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "获取流程节点失败!");
+		BufferedReader streamReader=null;
+		try {
+    		// 获取输入流
+    		 streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+    		// 写入数据到Stringbuilder
+    		StringBuilder sb = new StringBuilder();
+    		String line = null;
+    		while ((line = streamReader.readLine()) != null) {
+    			sb.append(line);
+    		}
+    		log.info("参数"+sb);
+    		jsonParam = JSONObject.parseObject(sb.toString());
+    		InputStream inputStream =null;
+    		if(jsonParam!=null){
+    			String processDefId=jsonParam.getString("procdefId");
+    			if(StringUtils.isBlank(processDefId)){
+    				throw new MyExceptions("获取流程节点,procdefId不能为空！");
+    			}
+    			  List<ActTaskNodeDTO> responseList = new ArrayList<ActTaskNodeDTO>();
+    		        BpmnModel model = repositoryService.getBpmnModel(processDefId);
+    		        if (model != null) {
+    		            Collection<FlowElement> flowElements = model.getMainProcess().getFlowElements();
+    		            int index = 1;
+    		            for (FlowElement e : flowElements) {
+    		                if (e instanceof org.activiti.bpmn.model.UserTask) { // 节点
+    		                	ActTaskNodeDTO node = new ActTaskNodeDTO();
+    		                    node.setTaskDefKey(e.getId());
+    		                    node.setTaskNodeName(e.getName());
+    		                    node.setTaskCategory(((org.activiti.bpmn.model.UserTask) e).getCategory());
+    		                    node.setOrderNo(index++);
+    		                    responseList.add(node);
+    		                }
+    		            }
+    		            result.put("rtnCode", "1");
+	    				result.put("rtnMsg", "查询成功!");
+	    				result.put("bean", null);
+	    				result.put("beans", responseList);
+	    				 log.info("获取流程节点成功"+result.toString());
+    		        }else {
+    		        	throw new MyExceptions("获取流程节点失败！");
+    		        }
+
+    			  
+    			 
+    		}
+    		
+    		
+    	} catch (Exception e) {
+    		e.printStackTrace();
+    		log.info("获取流程节点失败"+e.getMessage());
+    	}finally{
+    		try{
+    			if(null!=streamReader){
+    				streamReader.close();
+    			}
+    			String result2=result.toString();
+    			PrintWriter p=response.getWriter();
+    			p.println(result2);
+    			p.flush();
+    			p.close();
+    		}catch(Exception e){
+    			e.getStackTrace();
+    			log.info("获取流程节点失败"+e.getMessage());
+    		}
+    		
+    	}
+    	
 	}
+	
+	
+	
+	
+	    @ApiOperation(value = "挂起任务", notes = "根据流程定义id挂起任务")
+	    @RequestMapping(value = "/procDefId/suspend", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+	    public void updateStateSuspend(HttpServletRequest request,HttpServletResponse response) {
+	    	response.setContentType("application/json;charset=utf-8");
+			JSONObject jsonParam=null;
+			JSONObject result = new JSONObject();
+			result.put("rtnCode", "-1");
+			result.put("rtnMsg", "挂起任务失败!");
+			BufferedReader streamReader=null;
+			try {
+	    		// 获取输入流
+	    		 streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+	    		// 写入数据到Stringbuilder
+	    		StringBuilder sb = new StringBuilder();
+	    		String line = null;
+	    		while ((line = streamReader.readLine()) != null) {
+	    			sb.append(line);
+	    		}
+	    		log.info("参数"+sb);
+	    		jsonParam = JSONObject.parseObject(sb.toString());
+	    		InputStream inputStream =null;
+	    		if(jsonParam!=null){
+	    			String procDefId=jsonParam.getString("procDefId");
+	    			if(StringUtils.isBlank(procDefId)){
+	    				throw new MyExceptions("挂起任务,procDefId不能为空！");
+	    			}
+	    		    String deploymentId = repositoryService.getProcessDefinition(procDefId).getDeploymentId();
+		            List<ProcessDefinition> defines = repositoryService.createProcessDefinitionQuery()
+		                    .deploymentId(deploymentId).list();
+		            if (defines.size() > 0) {
+		                ProcessDefinition define = defines.get(0);
+		                if (define.isSuspended()) {
+		                	throw new MyExceptions("挂起任务 ：process define is already suspended");
+		                }
+		            }
+		            
+	    		        repositoryService.suspendProcessDefinitionById(procDefId, true, null);
+	    		        result.put("rtnCode", "1");
+	    				result.put("rtnMsg", "挂起任务成功!");
+	    				result.put("bean", null);
+	    				result.put("beans", null);
+	    			 
+	    		}
+	    		
+	    		
+	    	} catch (Exception e) {
+	    		e.printStackTrace();
+	    		log.info("挂起任务失败"+e.getMessage());
+	    	}finally{
+	    		try{
+	    			if(null!=streamReader){
+	    				streamReader.close();
+	    			}
+	    			String result2=result.toString();
+	    			PrintWriter p=response.getWriter();
+	    			p.println(result2);
+	    			p.flush();
+	    			p.close();
+	    		}catch(Exception e){
+	    			e.getStackTrace();
+	    			log.info("挂起任务失败"+e.getMessage());
+	    		}
+	    		
+	    	}
+	    	
+	    	
+
+	    }
+
+	    @ApiOperation(value = "激活任务", notes = "根据流程定义id激活任务")
+	    @RequestMapping(value = "/procDefId/active", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+	    public void updateStateActive(HttpServletRequest request,HttpServletResponse response) {
+	    	response.setContentType("application/json;charset=utf-8");
+			JSONObject jsonParam=null;
+			JSONObject result = new JSONObject();
+			result.put("rtnCode", "-1");
+			result.put("rtnMsg", "激活任务失败!");
+			BufferedReader streamReader=null;
+			try {
+	    		// 获取输入流
+	    		 streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+	    		// 写入数据到Stringbuilder
+	    		StringBuilder sb = new StringBuilder();
+	    		String line = null;
+	    		while ((line = streamReader.readLine()) != null) {
+	    			sb.append(line);
+	    		}
+	    		log.info("参数"+sb);
+	    		jsonParam = JSONObject.parseObject(sb.toString());
+	    		
+	    		if(jsonParam!=null){
+	    			String procDefId=jsonParam.getString("procDefId");
+	    			if(StringUtils.isBlank(procDefId)){
+	    				throw new MyExceptions("激活任务失败,procDefId不能为空！");
+	    			}
+	    			String deploymentId = repositoryService.getProcessDefinition(procDefId).getDeploymentId();
+	    			List<ProcessDefinition> defines = repositoryService.createProcessDefinitionQuery()
+	    	                    .deploymentId(deploymentId).list();
+	    	            if (defines.size() > 0) {
+	    	                ProcessDefinition define = defines.get(0);
+	    	                if (!define.isSuspended()) {
+	    	                    throw new MyExceptions("激活任务失败 ：process define is already actived");
+	    	                }
+	    	            }
+
+	    	            repositoryService.activateProcessDefinitionById(procDefId, true, null);
+		            
+	    		        repositoryService.suspendProcessDefinitionById(procDefId, true, null);
+	    		        result.put("rtnCode", "1");
+	    				result.put("rtnMsg", "激活任务成功!");
+	    				result.put("bean", null);
+	    				result.put("beans", null);
+	    			 
+	    		}
+	    		
+	    		
+	    	} catch (Exception e) {
+	    		e.printStackTrace();
+	    		log.info("激活任务失败"+e.getMessage());
+	    	}finally{
+	    		try{
+	    			if(null!=streamReader){
+	    				streamReader.close();
+	    			}
+	    			String result2=result.toString();
+	    			PrintWriter p=response.getWriter();
+	    			p.println(result2);
+	    			p.flush();
+	    			p.close();
+	    		}catch(Exception e){
+	    			e.getStackTrace();
+	    			log.info("激活任务失败"+e.getMessage());
+	    		}
+	    		
+	    	}
+	    	
+	    }
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
 	
 }
