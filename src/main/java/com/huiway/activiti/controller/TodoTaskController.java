@@ -722,8 +722,12 @@ public class TodoTaskController {
 							StartEvent startEvent = (StartEvent) e;
 							map.put("initiator", startEvent.getInitiator());
 							// map.put("startEvent", startEvent);
+							map.put("activityId", e.getId());
+							map.put("activityName", e.getName());
 						} else if (e instanceof UserTask) {
 							UserTask userTask = (UserTask) e;
+							map.put("activityId", e.getId());
+							map.put("activityName", e.getName());
 							map.put("assignee", userTask.getAssignee());
 							map.put("candidateUsers", userTask.getCandidateUsers());
 							map.put("candidateGroups", userTask.getCandidateGroups());
@@ -734,27 +738,31 @@ public class TodoTaskController {
 							MultiInstanceLoopCharacteristics ll = userTask.getLoopCharacteristics();
 							if (ll != null) {
 								map.put("isJoinTask", true);
-								map.put("loopCharacteristics", userTask.getLoopCharacteristics());
+								//map.put("loopCharacteristics", userTask.getLoopCharacteristics());
+								
+								map.put("sequential", userTask.getLoopCharacteristics().isSequential());
 								map.put("completionCondition",
 										userTask.getLoopCharacteristics().getCompletionCondition());
 								map.put("elementVariable", userTask.getLoopCharacteristics().getElementVariable());
 								map.put("inputDataItem", userTask.getLoopCharacteristics().getInputDataItem());
 							}
 
-							// map.put("collectionElementVariable",
-							// userTask.getLoopCharacteristics());
 
 							// map.put("userTask", userTask);
 						} else if (e instanceof EndEvent) {
 							EndEvent endEvent = (EndEvent) e;
 							// map.put("endEvent", endEvent);
-						} else {
+							map.put("activityId", e.getId());
+							map.put("activityName", e.getName());
+						} else if(e instanceof SequenceFlow){
 							SequenceFlow sequenceFlow = (SequenceFlow) e;
 							// map.put("sequenceFlow", sequenceFlow);
 							map.put("conditionExpression", sequenceFlow.getConditionExpression());
+							map.put("flowId", e.getId());
+							map.put("flowName", e.getName());
+							map.put("activityId",sequenceFlow.getTargetRef() );
 						}
-						map.put("activityId", e.getId());
-						map.put("activityName", e.getName());
+						
 						list.add(map);
 					}
 					// System.out.println("flowelement id:" + e.getId() + "
