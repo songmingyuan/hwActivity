@@ -1,6 +1,7 @@
 package com.huiway.activiti.dto;
 
 import java.io.Serializable;
+import java.util.Date;
 
 import com.huiway.activiti.dto.BaseDTO;
 
@@ -20,7 +21,7 @@ public class ActTaskNodeDTO extends BaseDTO implements Serializable{
     private String taskDefKey;
     
     private String taskNodeName;
-    
     private int orderNo;
+   
 
 }
