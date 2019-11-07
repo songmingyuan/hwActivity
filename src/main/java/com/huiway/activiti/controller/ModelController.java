@@ -281,9 +281,9 @@ public class ModelController {
 			jsonParam = JSONObject.parseObject(sb.toString());
 			InputStream inputStream = null;
 			if (jsonParam != null) {
-				String processDefId = jsonParam.getString("procdefId");
+				String processDefId = jsonParam.getString("procDefId");
 				if (StringUtils.isBlank(processDefId)) {
-					throw new MyExceptions("获取流程节点,procdefId不能为空！");
+					throw new MyExceptions("获取流程节点,procDefId不能为空！");
 				}
 				List<ActTaskNodeDTO> responseList = new ArrayList<ActTaskNodeDTO>();
 				BpmnModel model = repositoryService.getBpmnModel(processDefId);
