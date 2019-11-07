@@ -202,16 +202,18 @@ public class TodoTaskController {
 					String inputDataItemValue = jsonParam.getString("inputDataItemValue");
 
 					if (!StringUtils.isEmpty(isJoinTask) && "true".equals(isJoinTask)) {
-						boolean flag = isLastTask(processInstanceId, task.getName());
-						if (flag) {
-							if (!StringUtils.isEmpty(assigneeKey)) {
-								if (!StringUtils.isEmpty(assignee)) {
-									map.put(assigneeKey, assignee);
+						if(StringUtils.isEmpty(inputDataItemValue)){
+							boolean flag = isLastTask(processInstanceId, task.getName());
+							if (flag) {
+								if (!StringUtils.isEmpty(assigneeKey)) {
+									if (!StringUtils.isEmpty(assignee)) {
+										map.put(assigneeKey, assignee);
+									} else {
+										throw new MyExceptions("完成任务失败,assignee不能为空！");
+									}
 								} else {
-									throw new MyExceptions("完成任务失败,assignee不能为空！");
+									throw new MyExceptions("完成任务失败,assigneeKey不能为空！");
 								}
-							} else {
-								throw new MyExceptions("完成任务失败,assigneeKey不能为空！");
 							}
 						}
 					}
