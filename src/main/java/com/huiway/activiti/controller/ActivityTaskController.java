@@ -104,10 +104,10 @@ public class ActivityTaskController {
 			log.info("参数" + sb);
 			jsonParam = JSONObject.parseObject(sb.toString());
 			if (jsonParam != null) {
-				String tenantId = jsonParam.getString("tenantId");
-				if (StringUtils.isBlank(tenantId)) {
-					throw new MyExceptions("启动流程失败,tenantId不能为空！");
-				}
+//				String tenantId = jsonParam.getString("tenantId");
+//				if (StringUtils.isBlank(tenantId)) {
+//					throw new MyExceptions("启动流程失败,tenantId不能为空！");
+//				}
 				String assignee = jsonParam.getString("assignee");
 				// if(StringUtils.isBlank(assignee)){
 				// throw new MyExceptions("启动流程失败,assignee不能为空！");
@@ -817,14 +817,6 @@ public class ActivityTaskController {
 				String taskId = jsonParam.getString("taskId");
 				if (StringUtils.isBlank(taskId)) {
 					throw new MyExceptions("认领任务失败,taskId不能为空！");
-				}
-				String taskDefKey = jsonParam.getString("taskDefKey");
-				if (StringUtils.isBlank(taskDefKey)) {
-					throw new MyExceptions("认领任务失败,taskDefKey不能为空！");
-				}
-				String taskName = jsonParam.getString("taskName");
-				if (StringUtils.isBlank(taskName)) {
-					throw new MyExceptions("认领任务失败,taskName不能为空！");
 				}
 				String userId = jsonParam.getString("userId");
 				if (StringUtils.isBlank(userId)) {
@@ -1584,10 +1576,10 @@ public class ActivityTaskController {
 				if (StringUtils.isBlank(taskId)) {
 					throw new MyExceptions("转派任务失败,taskId不能为空！");
 				}
-				String userId = jsonParam.getString("userId");
-				if (StringUtils.isBlank(userId)) {
-					throw new MyExceptions("转派任务失败,userId不能为空！");
-				}
+//				String userId = jsonParam.getString("userId");
+//				if (StringUtils.isBlank(userId)) {
+//					throw new MyExceptions("转派任务失败,userId不能为空！");
+//				}
 				String receiver = jsonParam.getString("receiver");
 				if (StringUtils.isBlank(receiver)) {
 					throw new MyExceptions("转派任务失败,receiver不能为空！");

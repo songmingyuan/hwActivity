@@ -133,6 +133,11 @@ public class TodoTaskController {
 					String processInstanceId = task.getProcessInstanceId();
 					String processDefinitionId = task.getProcessDefinitionId();
 
+					if(!userId.equals(task.getAssignee())){
+						throw new MyExceptions("完成任务失败,该任务已不在您名下！");
+					}
+					
+					
 					// if (task.getOwner() != null &&
 					// !task.getOwner().equals("null")) {
 					// DelegationState delegationState =
@@ -289,6 +294,7 @@ public class TodoTaskController {
 		}
 
 	}
+	
 	/**
 	 * 是否是会签的最后一个任务
 	 * @param processInstanceId
@@ -451,6 +457,7 @@ public class TodoTaskController {
 				result.put("rtnMsg", "获取组待办任务成功!");
 				result.put("bean", null);
 				result.put("beans", ruList);
+				result.put("number", ruList.size());
 				log.info("获取组待办任务成功" + result.toString());
 			}
 
@@ -479,9 +486,90 @@ public class TodoTaskController {
 	}
 	
  
-    
-    
-    
+	@ApiOperation(value = "获取任务明细", notes = "根据流程实例id获取任务明细")
+	@RequestMapping(value = "/get/task/info", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+	public void getTaskInfo(HttpServletRequest request, HttpServletResponse response) {
+
+		JSONObject jsonParam = null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "获取待办任务失败!");
+		BufferedReader streamReader = null;
+		response.setContentType("application/json;charset=utf-8");
+		try {
+			// 获取输入流
+			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+			// 写入数据到Stringbuilder
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = streamReader.readLine()) != null) {
+				sb.append(line);
+			}
+			log.info("参数" + sb);
+			jsonParam = JSONObject.parseObject(sb.toString());
+			List<Map<String, String>> list = new ArrayList<>();
+			if (jsonParam != null) {
+				String taskId1 = jsonParam.getString("taskId");
+				if (StringUtils.isBlank(taskId1)) {
+					throw new MyExceptions("获取任务明细失败,taskId不能为空！");
+				}
+				// String procInstId = jsonParam.getString("procInstId");
+				// if (StringUtils.isBlank(procInstId)) {
+				// throw new MyExceptions("获取任务明细失败,procInstId不能为空！");
+				// }
+
+				List<Task> tasks = taskService.createTaskQuery().taskId(taskId1).list();
+				List<BpmActRuTask> ruList = new ArrayList<>();
+				if (!tasks.isEmpty()) {
+					for (Task task : tasks) {
+						String taskId = task.getId();
+						Task t = taskService.createTaskQuery().taskId(taskId).singleResult();
+						String processInstanceId = t.getProcessInstanceId();
+						Map<String, Object> paramMap = new HashMap<>();
+						paramMap.put("PROC_INST_ID_", processInstanceId);
+						paramMap.put("ID_", taskId);
+						List<BpmActRuTask> bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService
+								.listByMap(paramMap);
+						ruList.addAll(bpmActRuTaskList);
+					}
+
+				} else {
+					throw new MyExceptions("获取任务明细失败,查不到任务信息！");
+				}
+
+				result.put("rtnCode", "1");
+				result.put("rtnMsg", "获取任务明细成功!");
+				result.put("bean", null);
+				result.put("beans", ruList);
+				result.put("number", ruList.size());
+				log.info("获取任务明细成功" + result.toString());
+			}
+
+			// 直接将json信息打印出来
+			// System.out.println(jsonParam.toJSONString());
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("获取任务明细失败" + e.getMessage());
+		} finally {
+			try {
+				if (null != streamReader) {
+					streamReader.close();
+				}
+				String result2 = result.toString();
+				PrintWriter p = response.getWriter();
+				p.println(result2);
+				p.flush();
+				p.close();
+			} catch (Exception e) {
+				e.getStackTrace();
+				log.info("获取任务明细失败" + e.getMessage());
+			}
+
+		}
+
+	}
+
     @ApiOperation(value = "获取待办任务", notes = "根据流程实例id获取待办任务")
     @RequestMapping(value = "/get", method=RequestMethod.POST,produces="application/json;charset=utf-8")
 	public void getTodoTask(HttpServletRequest request, HttpServletResponse response) {
@@ -536,6 +624,7 @@ public class TodoTaskController {
 				result.put("rtnMsg", "获取待办任务成功!");
 				result.put("bean", null);
 				result.put("beans", ruList);
+				result.put("number", ruList.size());
 				log.info("获取待办任务成功" + result.toString());
 			}
 
