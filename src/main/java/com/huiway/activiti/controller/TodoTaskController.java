@@ -316,7 +316,7 @@ public class TodoTaskController {
 	}
 
 	@ApiOperation(value = "是否是会签的最后一个任务", notes = "根据流程实例id获取待办任务")
-	@RequestMapping(value = "/get/multiInstance", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+	@RequestMapping(value = "/get/isLastTask", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
 	public void isLastTaskList(HttpServletRequest request, HttpServletResponse response) {
 		JSONObject jsonParam = null;
 		JSONObject result = new JSONObject();
@@ -337,6 +337,7 @@ public class TodoTaskController {
 			log.info("参数" + sb);
 			jsonParam = JSONObject.parseObject(sb.toString());
 			List<Map<String, String>> list = new ArrayList<>();
+			boolean flag = false;
 			if (jsonParam != null) {
 
 				String taskId = jsonParam.getString("taskId");
@@ -349,10 +350,9 @@ public class TodoTaskController {
 				}
 				Task task = taskService.createTaskQuery().taskId(taskId) // 根据任务id查询
 						.singleResult();
-				Map<String, Object> res = new HashMap<>();
 				if (task != null) {
 					String processInstanceId = task.getProcessInstanceId();
-					boolean flag = false;
+					
 					if ("true".equals(isJoinTask)) {
 
 						List<Task> tasklist = taskService.createTaskQuery().processInstanceId(processInstanceId)
@@ -363,7 +363,6 @@ public class TodoTaskController {
 							flag = true;
 						}
 					}
-					res.put("isLastJoinTask", flag);
 
 				} else {
 					result.put("rtnCode", "-1");
@@ -374,7 +373,7 @@ public class TodoTaskController {
 				result.put("rtnMsg", "查询成功!");
 				result.put("bean", null);
 				result.put("beans", null);
-				result.put("map", res);
+				result.put("isLastJoinTask", flag);
 				log.info("获取任务成功" + result.toString());
 			} else {
 				result.put("rtnCode", "-1");
