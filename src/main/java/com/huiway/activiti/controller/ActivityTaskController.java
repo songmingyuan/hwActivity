@@ -1315,7 +1315,7 @@ public class ActivityTaskController {
 				if (StringUtils.isBlank(procInstId)) {
 					throw new MyExceptions("删除流程任务,procInstId不能为空！");
 				}
-				processEngine.getRuntimeService().deleteProcessInstance(procInstId, "");
+				processEngine.getRuntimeService().deleteProcessInstance(procInstId, "删除");
 
 				result.put("rtnCode", "1");
 				result.put("rtnMsg", "删除成功!");

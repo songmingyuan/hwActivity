@@ -336,7 +336,6 @@ public class TodoTaskController {
 			}
 			log.info("参数" + sb);
 			jsonParam = JSONObject.parseObject(sb.toString());
-			List<Map<String, String>> list = new ArrayList<>();
 			boolean flag = false;
 			if (jsonParam != null) {
 
@@ -359,7 +358,7 @@ public class TodoTaskController {
 								.taskName(task.getName()).list();
 						if (tasklist.isEmpty() || tasklist.size() > 1) {
 							flag = false;
-						} else if (list.size() == 1) {
+						} else if (tasklist.size() == 1) {
 							flag = true;
 						}
 					}
