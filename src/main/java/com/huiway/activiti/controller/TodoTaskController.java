@@ -449,9 +449,7 @@ public class TodoTaskController {
 						ruList.addAll(bpmActRuTaskList);
 					}
 
-				} else {
-					throw new MyExceptions("获取组待办任务失败,查不到任务信息！");
-				}
+				} 
 
 				result.put("rtnCode", "1");
 				result.put("rtnMsg", "获取组待办任务成功!");
@@ -616,8 +614,6 @@ public class TodoTaskController {
 						ruList.addAll(bpmActRuTaskList);
 					}
 
-				} else {
-					throw new MyExceptions("获取组待办任务失败,查不到任务信息！");
 				}
 
 				result.put("rtnCode", "1");
