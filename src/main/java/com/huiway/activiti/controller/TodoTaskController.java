@@ -8,8 +8,10 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -35,8 +37,10 @@ import org.activiti.engine.history.HistoricVariableInstanceQuery;
 import org.activiti.engine.impl.persistence.entity.ProcessDefinitionEntity;
 import org.activiti.engine.impl.persistence.entity.TaskEntity;
 import org.activiti.engine.runtime.ProcessInstance;
+import org.activiti.engine.task.IdentityLink;
 import org.activiti.engine.task.Task;
 import org.apache.commons.lang3.StringUtils;
+import org.mockito.internal.util.StringUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -567,7 +571,87 @@ public class TodoTaskController {
 		}
 
 	}
+	@ApiOperation(value = "获取待办任务信息", notes = "根据流程实例id获取待办任务")
+    @RequestMapping(value = "/get/procInstId", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+	public void getTodoTaskByprocInstId(HttpServletRequest request, HttpServletResponse response) {
 
+		JSONObject jsonParam = null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "获取待办任务信息失败!");
+		BufferedReader streamReader = null;
+		response.setContentType("application/json;charset=utf-8");
+		try {
+			// 获取输入流
+			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+			// 写入数据到Stringbuilder
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = streamReader.readLine()) != null) {
+				sb.append(line);
+			}
+			log.info("参数" + sb);
+			jsonParam = JSONObject.parseObject(sb.toString());
+			 List<Map<String, Object>> returnList = new ArrayList<>();
+			if (jsonParam != null) {
+				String procInstId = jsonParam.getString("procInstId");
+				if (StringUtils.isBlank(procInstId)) {
+					throw new MyExceptions("获取待办任务信息失败,procInstId不能为空！");
+				}
+
+				Map<String, Object> paramMap = new HashMap<>();
+				paramMap.put("PROC_INST_ID_", procInstId);
+				List<BpmActRuTask> bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService.listByMap(paramMap);
+                if(!bpmActRuTaskList.isEmpty()){
+                	for(BpmActRuTask bpmActRuTask : bpmActRuTaskList){
+                		Map<String, Object> bpmActRuTaskmap=new HashMap<>();
+                		bpmActRuTaskmap.put("bpmActRuTask", bpmActRuTask);
+                		String assignee=bpmActRuTask.getAssignee();
+                		String taskId=bpmActRuTask.getId();
+                		  Set<String> hashSet=new HashSet<>();
+                		if(StringUtils.isEmpty(assignee)){
+                		   List<IdentityLink> list= taskService.getIdentityLinksForTask( taskId);
+                		   bpmActRuTaskmap.put("IdentityLink", list);
+                		}
+                		returnList.add(bpmActRuTaskmap);
+                	}
+                }
+				
+				
+				
+
+				result.put("rtnCode", "1");
+				result.put("rtnMsg", "获取待办任务信息成功!");
+				result.put("bean", null);
+				result.put("beans", returnList);
+				result.put("number", returnList.size());
+				log.info("获取待办任务信息成功" + result.toString());
+			}
+
+			// 直接将json信息打印出来
+			// System.out.println(jsonParam.toJSONString());
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("获取待办任务信息失败" + e.getMessage());
+		} finally {
+			try {
+				if (null != streamReader) {
+					streamReader.close();
+				}
+				String result2 = result.toString();
+				PrintWriter p = response.getWriter();
+				p.println(result2);
+				p.flush();
+				p.close();
+			} catch (Exception e) {
+				e.getStackTrace();
+				log.info("获取待办任务信息失败" + e.getMessage());
+			}
+
+		}
+
+	}
     @ApiOperation(value = "获取待办任务", notes = "根据流程实例id获取待办任务")
     @RequestMapping(value = "/get", method=RequestMethod.POST,produces="application/json;charset=utf-8")
 	public void getTodoTask(HttpServletRequest request, HttpServletResponse response) {
