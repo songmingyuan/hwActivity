@@ -102,9 +102,9 @@ public class TodoTaskController {
 			jsonParam = JSONObject.parseObject(sb.toString());
 			if (jsonParam != null) {
 				String tenantId = jsonParam.getString("tenantId");
-				if (StringUtils.isBlank(tenantId)) {
-					throw new MyExceptions("完成任务失败,tenantId不能为空！");
-				}
+//				if (StringUtils.isBlank(tenantId)) {
+//					throw new MyExceptions("完成任务失败,tenantId不能为空！");
+//				}
 				String assignee = jsonParam.getString("assignee");
 				String assigneeKey = jsonParam.getString("assigneeKey");
 				// if(StringUtils.isBlank(assignee)){
@@ -112,14 +112,17 @@ public class TodoTaskController {
 				// }
 				String taskId = jsonParam.getString("taskId");
 				if (StringUtils.isBlank(taskId)) {
+					result.put("rtnMsg", "完成任务失败,参数taskId不能为空！");
 					throw new MyExceptions("完成任务失败,taskId不能为空！");
 				}
 				String judge = jsonParam.getString("judge");
-				if (StringUtils.isBlank(judge)) {
-					throw new MyExceptions("完成任务失败,judge不能为空！");
-				}
+//				if (StringUtils.isBlank(judge)) {
+//					throw new MyExceptions("完成任务失败,judge不能为空！");
+//				}
 				String userId = jsonParam.getString("userId");
 				if (StringUtils.isBlank(userId)) {
+					
+					result.put("rtnMsg", "完成任务失败,参数userId不能为空！");
 					throw new MyExceptions("完成任务失败,userId不能为空！");
 				}
 
@@ -138,6 +141,7 @@ public class TodoTaskController {
 					String processDefinitionId = task.getProcessDefinitionId();
 
 					if(!userId.equals(task.getAssignee())){
+						result.put("rtnMsg", "完成任务失败,该任务已不在您名下！");
 						throw new MyExceptions("完成任务失败,该任务已不在您名下！");
 					}
 					
@@ -328,6 +332,7 @@ public class TodoTaskController {
 		result.put("rtnMsg", "获取任务失败!");
 		BufferedReader streamReader = null;
 		response.setContentType("application/json;charset=utf-8");
+		
 		try {
 			// 获取输入流
 			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
@@ -345,6 +350,7 @@ public class TodoTaskController {
 
 				String taskId = jsonParam.getString("taskId");
 				if (StringUtils.isBlank(taskId)) {
+					result.put("rtnMsg", "获取任务失败,参数taskId不能为空！");
 					throw new MyExceptions("获取任务失败,taskId不能为空！");
 				}
 				String isJoinTask = jsonParam.getString("isJoinTask");
@@ -372,11 +378,15 @@ public class TodoTaskController {
 					result.put("rtnMsg", "获取任务失败，找不到任务!");
 					throw new MyExceptions("获取任务失败，找不到任务!");
 				}
+				Map<String,Object> rtnMap=new HashMap<>();
+				rtnMap.put("isLastJoinTask", flag);
+				
 				result.put("rtnCode", "1");
 				result.put("rtnMsg", "查询成功!");
 				result.put("bean", null);
 				result.put("beans", null);
-				result.put("isLastJoinTask", flag);
+				
+				result.put("rtnMap", rtnMap);
 				log.info("获取任务成功" + result.toString());
 			} else {
 				result.put("rtnCode", "-1");
@@ -435,6 +445,7 @@ public class TodoTaskController {
 
 				String userId = jsonParam.getString("userId");
 				if (StringUtils.isBlank(userId)) {
+					result.put("rtnMsg", "获取组待办任务失败,参数userId不能为空！");
 					throw new MyExceptions("获取组待办任务失败,userId不能为空！");
 				}
 				List<Task> tasks = taskService.createTaskQuery().taskCandidateUser(userId).orderByTaskCreateTime()
@@ -454,12 +465,14 @@ public class TodoTaskController {
 					}
 
 				} 
-
+				Map<String,Object> rtnMap=new HashMap<>();
+				rtnMap.put("totalNumber", ruList.size());
+				
 				result.put("rtnCode", "1");
 				result.put("rtnMsg", "获取组待办任务成功!");
 				result.put("bean", null);
 				result.put("beans", ruList);
-				result.put("number", ruList.size());
+				result.put("rtnMap", rtnMap);
 				log.info("获取组待办任务成功" + result.toString());
 			}
 
@@ -514,6 +527,7 @@ public class TodoTaskController {
 			if (jsonParam != null) {
 				String taskId1 = jsonParam.getString("taskId");
 				if (StringUtils.isBlank(taskId1)) {
+					result.put("rtnMsg", "获取待办任务明细失败,参数taskId不能为空！");
 					throw new MyExceptions("获取任务明细失败,taskId不能为空！");
 				}
 				// String procInstId = jsonParam.getString("procInstId");
@@ -544,7 +558,6 @@ public class TodoTaskController {
 				result.put("rtnMsg", "获取任务明细成功!");
 				result.put("bean", null);
 				result.put("beans", ruList);
-				result.put("number", ruList.size());
 				log.info("获取任务明细成功" + result.toString());
 			}
 
@@ -597,6 +610,7 @@ public class TodoTaskController {
 			if (jsonParam != null) {
 				String procInstId = jsonParam.getString("procInstId");
 				if (StringUtils.isBlank(procInstId)) {
+					result.put("rtnMsg", "获取待办任务信息失败,参数procInstId不能为空！");
 					throw new MyExceptions("获取待办任务信息失败,procInstId不能为空！");
 				}
 
@@ -606,26 +620,42 @@ public class TodoTaskController {
                 if(!bpmActRuTaskList.isEmpty()){
                 	for(BpmActRuTask bpmActRuTask : bpmActRuTaskList){
                 		Map<String, Object> bpmActRuTaskmap=new HashMap<>();
-                		bpmActRuTaskmap.put("bpmActRuTask", bpmActRuTask);
+                		//bpmActRuTaskmap.put("bpmActRuTask", bpmActRuTask);
+                		bpmActRuTaskmap.put("procInstId", bpmActRuTask.getProcInstId());
+                		bpmActRuTaskmap.put("taskId", bpmActRuTask.getAssignee());
+                		bpmActRuTaskmap.put("procInstId", bpmActRuTask.getId());
+                		bpmActRuTaskmap.put("taskDefKey", bpmActRuTask.getTaskDefKey());
+                		bpmActRuTaskmap.put("name", bpmActRuTask.getName());
                 		String assignee=bpmActRuTask.getAssignee();
                 		String taskId=bpmActRuTask.getId();
-                		  Set<String> hashSet=new HashSet<>();
                 		if(StringUtils.isEmpty(assignee)){
-                		   List<IdentityLink> list= taskService.getIdentityLinksForTask( taskId);
-                		   bpmActRuTaskmap.put("IdentityLink", list);
+                		   List<IdentityLink> list= taskService.getIdentityLinksForTask(taskId);
+                		   List<Map<String, Object>> identityLinkList = new ArrayList<>();
+                		   for(IdentityLink  identityLink :list){
+                			   Map<String, Object> identityLinkMap=new HashMap<>();
+                			   identityLinkMap.put("type", identityLink.getType());
+                			   identityLinkMap.put("userId", identityLink.getUserId());
+                			   identityLinkMap.put("groupId", identityLink.getGroupId());
+                			   identityLinkMap.put("procInstId", identityLink.getProcessInstanceId());
+                			   identityLinkList.add(identityLinkMap);
+                		   }
+                		   
+                		   bpmActRuTaskmap.put("identityLink", identityLinkList);
+                		}else{
+                		   bpmActRuTaskmap.put("assignee", assignee);
                 		}
                 		returnList.add(bpmActRuTaskmap);
                 	}
                 }
-				
-				
+				Map<String,Object> rtnMap=new HashMap<>();
+				rtnMap.put("totalNumber", returnList.size());
 				
 
 				result.put("rtnCode", "1");
 				result.put("rtnMsg", "获取待办任务信息成功!");
 				result.put("bean", null);
 				result.put("beans", returnList);
-				result.put("number", returnList.size());
+				result.put("rtnMap", rtnMap);
 				log.info("获取待办任务信息成功" + result.toString());
 			}
 
@@ -678,6 +708,7 @@ public class TodoTaskController {
 			if (jsonParam != null) {
 				String userId = jsonParam.getString("userId");
 				if (StringUtils.isBlank(userId)) {
+					result.put("rtnMsg", "获取待办任务失败,参数userId不能为空！");
 					throw new MyExceptions("获取待办任务失败,userId不能为空！");
 				}
 
@@ -699,12 +730,14 @@ public class TodoTaskController {
 					}
 
 				}
-
+				Map<String,Object> rtnMap=new HashMap<>();
+				rtnMap.put("totalNumber", ruList.size());
+				
 				result.put("rtnCode", "1");
 				result.put("rtnMsg", "获取待办任务成功!");
 				result.put("bean", null);
 				result.put("beans", ruList);
-				result.put("number", ruList.size());
+				result.put("rtnMap", rtnMap);
 				log.info("获取待办任务成功" + result.toString());
 			}
 
@@ -760,6 +793,7 @@ public class TodoTaskController {
 			if (jsonParam != null) {
 				String taskId = jsonParam.getString("taskId");
 				if (StringUtils.isBlank(taskId)) {
+					result.put("rtnMsg", "获取下一步任务节点失败,参数taskId不能为空！");
 					throw new MyExceptions("获取下一步任务节点,taskId不能为空！");
 				}
 				Task task = taskService.createTaskQuery() // 创建任务查询

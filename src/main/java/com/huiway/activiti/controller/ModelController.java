@@ -73,15 +73,18 @@ public class ModelController {
 			if (jsonParam != null) {
 				String tenantId = jsonParam.getString("tenantId");
 				if (StringUtils.isBlank(tenantId)) {
+					result.put("rtnMsg", "部署失败,参数tenantId不能为空！");
 					throw new MyExceptions("部署失败,tenantId不能为空！");
 				}
 				String file = jsonParam.getString("file");
 				if (StringUtils.isBlank(file)) {
+					result.put("rtnMsg", "部署失败,参数file不能为空！");
 					throw new MyExceptions("部署失败,file不能为空！");
 				}
 				inputStream = new ByteArrayInputStream(file.getBytes("ISO-8859-1"));
 				String resourceName = jsonParam.getString("fileName");
 				if (StringUtils.isBlank(tenantId)) {
+					result.put("rtnMsg", "部署失败,参数fileName不能为空！");
 					throw new MyExceptions("部署失败,fileName不能为空！");
 				}
 				// 根据bpmn文件部署流程
@@ -92,10 +95,10 @@ public class ModelController {
 						.deploymentId(deploy.getId()).singleResult();
 
 				//
-				if (StringUtils.isBlank(processDefinition.getKey())) {
-					throw new MyExceptions("部署失败,key不能为空！");
+				if (StringUtils.isBlank(processDefinition.getId())) {
+					throw new MyExceptions("部署失败,流程定义不能为空！");
 				}
-
+				result.put("procDefId", processDefinition.getId());
 				result.put("rtnCode", "1");
 				result.put("rtnMsg", "部署成功!");
 				log.info("部署成功" + result.toString());
@@ -150,6 +153,7 @@ public class ModelController {
 			if (jsonParam != null) {
 				String processDefinitionId = jsonParam.getString("processDefinitionId");
 				if (StringUtils.isBlank(processDefinitionId)) {
+					result.put("rtnMsg", "获取流程图失败,参数processDefinitionId不能为空！");
 					throw new MyExceptions("获取流程图失败,processDefinitionId不能为空！");
 				}
 
@@ -214,6 +218,7 @@ public class ModelController {
 			if (jsonParam != null) {
 				String procDefId = jsonParam.getString("procDefId");
 				if (StringUtils.isBlank(procDefId)) {
+					result.put("rtnMsg", "移除已部署的流程失败,参数procDefId不能为空！");
 					throw new MyExceptions("移除已部署的流程失败,procDefId不能为空！");
 				}
 				String deploymentId = repositoryService.getProcessDefinition(procDefId).getDeploymentId();
@@ -283,7 +288,8 @@ public class ModelController {
 			if (jsonParam != null) {
 				String processDefId = jsonParam.getString("procDefId");
 				if (StringUtils.isBlank(processDefId)) {
-					throw new MyExceptions("获取流程节点,procDefId不能为空！");
+					result.put("rtnMsg", "获取流程节点失败,参数procDefId不能为空！!");
+					throw new MyExceptions("获取流程节点失败,procDefId不能为空！");
 				}
 				List<ActTaskNodeDTO> responseList = new ArrayList<ActTaskNodeDTO>();
 				BpmnModel model = repositoryService.getBpmnModel(processDefId);
@@ -306,6 +312,7 @@ public class ModelController {
 					result.put("beans", responseList);
 					log.info("获取流程节点成功" + result.toString());
 				} else {
+					
 					throw new MyExceptions("获取流程节点失败！");
 				}
 
@@ -361,7 +368,8 @@ public class ModelController {
 				if (jsonParam != null) {
 					String procDefId = jsonParam.getString("procDefId");
 					if (StringUtils.isBlank(procDefId)) {
-						throw new MyExceptions("挂起任务,procDefId不能为空！");
+						result.put("rtnMsg", "挂起任务失败,参数procDefId不能为空！");
+						throw new MyExceptions("挂起任务失败,procDefId不能为空！");
 					}
 					String deploymentId = repositoryService.getProcessDefinition(procDefId).getDeploymentId();
 					List<ProcessDefinition> defines = repositoryService.createProcessDefinitionQuery()
@@ -428,6 +436,7 @@ public class ModelController {
 				if (jsonParam != null) {
 					String procDefId = jsonParam.getString("procDefId");
 					if (StringUtils.isBlank(procDefId)) {
+						result.put("rtnMsg", "激活任务失败,procDefId不能为空！");
 						throw new MyExceptions("激活任务失败,procDefId不能为空！");
 					}
 					String deploymentId = repositoryService.getProcessDefinition(procDefId).getDeploymentId();

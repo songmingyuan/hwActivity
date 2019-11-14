@@ -116,14 +116,17 @@ public class ActivityTaskController {
 
 				String procDefId = jsonParam.getString("procDefId");
 				if (StringUtils.isBlank(procDefId)) {
+					result.put("rtnMsg", "启动流程失败,参数procDefId不能为空！");
 					throw new MyExceptions("启动流程失败,procDefId不能为空！");
 				}
 				String businessKey = jsonParam.getString("businessKey");
 				if (StringUtils.isBlank(businessKey)) {
+					result.put("rtnMsg", "启动流程失败,参数businessKey不能为空！");
 					throw new MyExceptions("启动流程失败,businessKey不能为空！");
 				}
 				String userId = jsonParam.getString("userId");
 				if (StringUtils.isBlank(userId)) {
+					result.put("rtnMsg", "启动流程失败,参数userId不能为空！");
 					throw new MyExceptions("启动流程失败,userId不能为空！");
 				}
 
@@ -202,6 +205,7 @@ public class ActivityTaskController {
 			if (jsonParam != null) {
 				String userList = jsonParam.getString("userList");
 				if (StringUtils.isBlank(userList)) {
+					result.put("rtnMsg", "删除失败，参数userList不能为空！");
 					throw new MyExceptions("删除失败,获取不到参数！");
 				}
 				List<Map> li = JSONObject.parseArray(userList, Map.class);
@@ -270,6 +274,7 @@ public class ActivityTaskController {
 			if (jsonParam != null) {
 				String groupsAndUserList = jsonParam.getString("groupsAndUserList");
 				if (StringUtils.isEmpty(groupsAndUserList)) {
+					result.put("rtnMsg", "删除失败,参数groupsAndUserList不能为空！");
 					throw new MyExceptions("删除失败,获取不到参数！");
 				}
 				List<Map> li = JSONObject.parseArray(groupsAndUserList, Map.class);
@@ -346,6 +351,7 @@ public class ActivityTaskController {
 			if (jsonParam != null) {
 				String groupsIdList = jsonParam.getString("groupsIdList");
 				if (StringUtils.isBlank(groupsIdList)) {
+					result.put("rtnMsg", "删除失败,参数groupsIdList不能为空！");
 					throw new MyExceptions("删除失败,获取不到参数！");
 				}
 				List<Map> li = JSONObject.parseArray(groupsIdList, Map.class);
@@ -417,6 +423,7 @@ public class ActivityTaskController {
 			if (jsonParam != null) {
 				String userList = jsonParam.getString("userList");
 				if (StringUtils.isBlank(userList)) {
+					result.put("rtnMsg", "添加失败,参数userList不能为空！");
 					throw new MyExceptions("添加失败,获取不到参数！");
 				}
 				List<Map> li = JSONObject.parseArray(userList, Map.class);
@@ -490,6 +497,7 @@ public class ActivityTaskController {
 			if (jsonParam != null) {
 				String groupsList = jsonParam.getString("groupsList");
 				if (StringUtils.isBlank(groupsList)) {
+					result.put("rtnMsg", "添加失败,groupsList不能为空！");
 					throw new MyExceptions("添加失败,获取不到参数！");
 				}
 				List<Map> li = JSONObject.parseArray(groupsList, Map.class);
@@ -499,10 +507,12 @@ public class ActivityTaskController {
 				for (Map map : li) {
 					String groupsId =  map.get("groupsId")==null?"":map.get("groupsId").toString();
 					if (StringUtils.isBlank(groupsId)) {
+						result.put("rtnMsg", "添加失败,groupsId不能为空！");
 						throw new MyExceptions("添加失败,groupsId不能为空！");
 					}
 					String groupsName =  map.get("groupsName")==null?"":map.get("groupsName").toString();
 					if (StringUtils.isBlank(groupsName)) {
+						result.put("rtnMsg", "添加失败,groupsName不能为空！");
 						throw new MyExceptions("添加失败,groupsName不能为空！");
 					}
 					// String userList=(String) map.get("userList");
@@ -586,6 +596,7 @@ public class ActivityTaskController {
 			if (jsonParam != null) {
 				String groupsAndUser = jsonParam.getString("groupsAndUser");
 				if (StringUtils.isBlank(groupsAndUser)) {
+					result.put("rtnMsg", "添加失败,groupsAndUser不能为空！");
 					throw new MyExceptions("添加失败,获取不到参数！");
 				}
 				List<Map> li = JSONObject.parseArray(groupsAndUser, Map.class);
@@ -595,10 +606,12 @@ public class ActivityTaskController {
 				for (Map map : li) {
 					String groupsId = map.get("groupsId")==null?"":map.get("groupsId").toString();
 					if (StringUtils.isBlank(groupsId)) {
+						result.put("rtnMsg", "添加失败,groupsId不能为空！");
 						throw new MyExceptions("添加失败,groupsId不能为空！");
 					}
 					String userList = map.get("userList")==null?"":map.get("userList").toString();
 					if (StringUtils.isBlank(userList)) {
+						result.put("rtnMsg", "添加失败,userList不能为空！");
 						throw new MyExceptions("添加,userList不能为空！");
 					}
 					String[] userIds = userList.split(",");
@@ -679,6 +692,7 @@ public class ActivityTaskController {
 			if (jsonParam != null) {
 				String procInstId = jsonParam.getString("procInstId");
 				if (StringUtils.isBlank(procInstId)) {
+					result.put("rtnMsg", "获取流程图失败,procInstId不能为空！");
 					throw new MyExceptions("获取流程图失败,procInstId不能为空！");
 				}
 				String str = getDiagram(procInstId);
@@ -713,8 +727,8 @@ public class ActivityTaskController {
 	}
 	
 	
-    @ApiOperation(value = "获取任务历史节点", notes = "根据流程实例id获取任务历史节点")
-    @RequestMapping(value = "/history-tasks", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+    @ApiOperation(value = "获取任务历史", notes = "根据流程实例id获取任务历史节点")
+    @RequestMapping(value = "/history/tasks", method=RequestMethod.POST,produces="application/json;charset=utf-8")
 	public void getHiTask(HttpServletRequest request, HttpServletResponse response) {
 
 		response.setContentType("application/json;charset=utf-8");
@@ -740,10 +754,10 @@ public class ActivityTaskController {
 			if (jsonParam != null) {
 				String procInstId = jsonParam.getString("procInstId");
 				if (StringUtils.isBlank(procInstId)) {
+					result.put("rtnMsg", "任务失败,procInstId不能为空！");
 					throw new MyExceptions("任务失败,procInstId不能为空！");
 				}
 				List<ActHiTaskNodeDTO> responseDTOList = new ArrayList<ActHiTaskNodeDTO>();
-
 				List<HistoricActivityInstance> hai = historyService.createHistoricActivityInstanceQuery()
 						.processInstanceId(procInstId).orderByHistoricActivityInstanceStartTime().asc().list(); // 获取流程中已经执行的节点，按照执行先后顺序排序
 				for (HistoricActivityInstance activityInstance : hai) {
@@ -816,10 +830,12 @@ public class ActivityTaskController {
 			if (jsonParam != null) {
 				String taskId = jsonParam.getString("taskId");
 				if (StringUtils.isBlank(taskId)) {
+					result.put("rtnMsg", "认领任务失败,taskId不能为空！");
 					throw new MyExceptions("认领任务失败,taskId不能为空！");
 				}
 				String userId = jsonParam.getString("userId");
 				if (StringUtils.isBlank(userId)) {
+					result.put("rtnMsg", "认领任务失败,userId不能为空！");
 					throw new MyExceptions("认领任务失败,userId不能为空！");
 				}
 				Task acttask = taskService.createTaskQuery().taskId(taskId).singleResult();
@@ -885,6 +901,7 @@ public class ActivityTaskController {
 			if (jsonParam != null) {
 				String procInstId = jsonParam.getString("procInstId");
 				if (StringUtils.isBlank(procInstId)) {
+					result.put("rtnMsg", "只撤回到上一步流程节点任务失败,procInstId不能为空！");
 					throw new MyExceptions("只撤回到上一步流程节点任务失败,procInstId不能为空！");
 				}
 				String userId = jsonParam.getString("userId");
@@ -1042,14 +1059,17 @@ public class ActivityTaskController {
 			if (jsonParam != null) {
 				String processInstanceId = jsonParam.getString("procInstId");
 				if (StringUtils.isBlank(processInstanceId)) {
+					result.put("rtnMsg", "任务失败,procInstId不能为空！");
 					throw new MyExceptions("任务失败,procInstId不能为空！");
 				}
 				String taskKey = jsonParam.getString("taskDefKey");
 				if (StringUtils.isBlank(taskKey)) {
+					result.put("rtnMsg", "任务失败,taskDefKey不能为空！");
 					throw new MyExceptions("任务失败,taskDefKey不能为空！");
 				}
 				String userId = jsonParam.getString("userId");
 				if (StringUtils.isBlank(userId)) {
+					result.put("rtnMsg", "任务失败,userId不能为空！");
 					throw new MyExceptions("任务失败,userId不能为空！");
 				}
 				Task task = taskService.createTaskQuery().processInstanceId(processInstanceId).singleResult();
@@ -1313,6 +1333,7 @@ public class ActivityTaskController {
 			if (jsonParam != null) {
 				String procInstId = jsonParam.getString("procInstId");
 				if (StringUtils.isBlank(procInstId)) {
+					result.put("rtnMsg", "删除流程任务失败,procInstId不能为空！");
 					throw new MyExceptions("删除流程任务,procInstId不能为空！");
 				}
 				processEngine.getRuntimeService().deleteProcessInstance(procInstId, "删除");
@@ -1379,6 +1400,7 @@ public class ActivityTaskController {
 
 				String taskId = jsonParam.getString("taskId");
 				if (StringUtils.isBlank(taskId)) {
+					result.put("rtnMsg", "获取任务网关信息失败,taskId不能为空！");
 					throw new MyExceptions("获取任务网关信息失败,taskId不能为空！");
 				}
 				Task task = taskService.createTaskQuery() // 创建任务查询
@@ -1490,7 +1512,7 @@ public class ActivityTaskController {
 		JSONObject jsonParam = null;
 		JSONObject result = new JSONObject();
 		result.put("rtnCode", "-1");
-		result.put("rtnMsg", "获取任务网关信息失败!");
+		result.put("rtnMsg", "暂停任务失败!");
 		result.put("procDefId", null);
 		BufferedReader streamReader = null;
 		response.setContentType("application/json;charset=utf-8");
@@ -1510,6 +1532,7 @@ public class ActivityTaskController {
 
 				String procInstId = jsonParam.getString("procInstId");
 				if (StringUtils.isBlank(procInstId)) {
+					result.put("rtnMsg", "暂停任务失败,procInstId不能为空！");
 					throw new MyExceptions("暂停任务失败,procInstId不能为空！");
 				}
 				boolean suspended = runtimeService.createProcessInstanceQuery().processInstanceId(procInstId)
@@ -1555,7 +1578,6 @@ public class ActivityTaskController {
 		JSONObject result = new JSONObject();
 		result.put("rtnCode", "-1");
 		result.put("rtnMsg", "转派任务失败!");
-		result.put("procDefId", null);
 		BufferedReader streamReader = null;
 		response.setContentType("application/json;charset=utf-8");
 		try {
@@ -1574,6 +1596,7 @@ public class ActivityTaskController {
 
 				String taskId = jsonParam.getString("taskId");
 				if (StringUtils.isBlank(taskId)) {
+					result.put("rtnMsg", "转派任务失败,taskId不能为空！");
 					throw new MyExceptions("转派任务失败,taskId不能为空！");
 				}
 //				String userId = jsonParam.getString("userId");
@@ -1582,10 +1605,14 @@ public class ActivityTaskController {
 //				}
 				String receiver = jsonParam.getString("receiver");
 				if (StringUtils.isBlank(receiver)) {
+					result.put("rtnMsg", "转派任务失败,receiver不能为空！");
 					throw new MyExceptions("转派任务失败,receiver不能为空！");
 				}
 				taskService.setAssignee(taskId, receiver);
-
+				result.put("rtnCode", "1");
+				result.put("rtnMsg", "转派任务成功!");
+				result.put("bean", null);
+				result.put("beans", null);
 			}
 
 			// 直接将json信息打印出来
@@ -1636,6 +1663,7 @@ public class ActivityTaskController {
 
 				String procInstId = jsonParam.getString("procInstId");
 				if (StringUtils.isBlank(procInstId)) {
+					result.put("rtnMsg", "激活任务失败,procInstId不能为空！");
 					throw new MyExceptions("激活任务失败,procInstId不能为空！");
 				}
 				boolean suspended = runtimeService.createProcessInstanceQuery().processInstanceId(procInstId)
@@ -1675,8 +1703,8 @@ public class ActivityTaskController {
 	}
     
     
-    @ApiOperation(value = "获取历史任务", notes = "根据流程实例id获取正在运行的任务")
-    @RequestMapping(value = "/ru-tasks", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+    @ApiOperation(value = "获取历史任务", notes = "根据流程实例id获取历史任务")
+    @RequestMapping(value = "/ru/tasks", method=RequestMethod.POST,produces="application/json;charset=utf-8")
 	public void getRuTask(HttpServletRequest request, HttpServletResponse response) {
 		JSONObject jsonParam = null;
 		JSONObject result = new JSONObject();
@@ -1701,11 +1729,13 @@ public class ActivityTaskController {
 
 				String procInstId = jsonParam.getString("procInstId");
 				if (StringUtils.isBlank(procInstId)) {
+					result.put("rtnMsg", "获取历史任务失败,procInstId不能为空！");
 					throw new MyExceptions("获取历史任务失败,procInstId不能为空！");
 				}
 				List<HistoricTaskInstance> list = processEngine.getHistoryService() // 历史相关Service
 						.createHistoricTaskInstanceQuery() // 创建历史任务实例查询
 						.processInstanceId(procInstId) // 用流程实例id查询
+						.orderByTaskCreateTime().asc()
 						.list();
 
 				result.put("rtnCode", "1");
@@ -1737,8 +1767,8 @@ public class ActivityTaskController {
 		}
 	}
     
-    @ApiOperation(value = "获取任务历史节点", notes = "根据流程实例id获取正在运行的任务")
-    @RequestMapping(value = "/actiivty/ru-tasks", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+    @ApiOperation(value = "获取任务历史节点", notes = "根据流程实例id获取历史节点")
+    @RequestMapping(value = "/actiivty/tasks", method=RequestMethod.POST,produces="application/json;charset=utf-8")
 	public void getActivityRuTask(HttpServletRequest request, HttpServletResponse response) {
 		JSONObject jsonParam = null;
 		JSONObject result = new JSONObject();
@@ -1763,6 +1793,7 @@ public class ActivityTaskController {
 
 				String procInstId = jsonParam.getString("procInstId");
 				if (StringUtils.isBlank(procInstId)) {
+					result.put("rtnMsg", "获取任务历史节点失败,procInstId不能为空！");
 					throw new MyExceptions("任务历史节点失败,procInstId不能为空！");
 				}
 				List<HistoricActivityInstance> list = processEngine.getHistoryService() // 历史相关Service
