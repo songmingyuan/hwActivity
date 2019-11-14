@@ -9,7 +9,9 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -93,12 +95,16 @@ public class ModelController {
 				// 获取流程定义
 				ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
 						.deploymentId(deploy.getId()).singleResult();
-
+				Map<String,Object> rtnMap=new HashMap<>();
 				//
 				if (StringUtils.isBlank(processDefinition.getId())) {
 					throw new MyExceptions("部署失败,流程定义不能为空！");
 				}
-				result.put("procDefId", processDefinition.getId());
+				rtnMap.put("procDefId", processDefinition.getId());
+				rtnMap.put("key", processDefinition.getKey());
+				rtnMap.put("name", processDefinition.getName());
+				
+				result.put("rtnMap", rtnMap);
 				result.put("rtnCode", "1");
 				result.put("rtnMsg", "部署成功!");
 				log.info("部署成功" + result.toString());
