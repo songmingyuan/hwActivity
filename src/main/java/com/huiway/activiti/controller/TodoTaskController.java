@@ -17,12 +17,14 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 
+import org.activiti.bpmn.model.BoundaryEvent;
 import org.activiti.bpmn.model.BpmnModel;
 import org.activiti.bpmn.model.EndEvent;
 import org.activiti.bpmn.model.FlowElement;
 import org.activiti.bpmn.model.MultiInstanceLoopCharacteristics;
 import org.activiti.bpmn.model.SequenceFlow;
 import org.activiti.bpmn.model.StartEvent;
+import org.activiti.bpmn.model.SubProcess;
 import org.activiti.bpmn.model.UserTask;
 import org.activiti.engine.HistoryService;
 import org.activiti.engine.IdentityService;
@@ -32,6 +34,7 @@ import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.activiti.engine.history.HistoricActivityInstance;
+import org.activiti.engine.history.HistoricTaskInstance;
 import org.activiti.engine.history.HistoricVariableInstance;
 import org.activiti.engine.history.HistoricVariableInstanceQuery;
 import org.activiti.engine.impl.persistence.entity.ProcessDefinitionEntity;
@@ -128,6 +131,8 @@ public class TodoTaskController {
 
 				String condition = jsonParam.getString("condition");
 				String conditionValue = jsonParam.getString("conditionValue");
+				String condition2 = jsonParam.getString("condition2");
+				String conditionValue2 = jsonParam.getString("conditionValue2");
 				// String candidateUsers=jsonParam.getString("candidateUsers");
 				// String
 				// candidateGroups=jsonParam.getString("candidateGroups");
@@ -181,7 +186,9 @@ public class TodoTaskController {
 					if (!StringUtils.isEmpty(conditionValue) && !StringUtils.isEmpty(condition)) {
 						map.put(condition, conditionValue);
 					}
-
+					if (!StringUtils.isEmpty(conditionValue2) && !StringUtils.isEmpty(condition2)) {
+						map.put(condition2, conditionValue2);
+					}
 					if (!StringUtils.isEmpty(assigneeKey)) {
 						if (!StringUtils.isEmpty(assignee)) {
 							map.put(assigneeKey, assignee);
@@ -964,6 +971,61 @@ public class TodoTaskController {
 							map.put("flowId", e.getId());
 							map.put("flowName", e.getName());
 							map.put("activityId",sequenceFlow.getTargetRef() );
+						}else if(e instanceof SubProcess){
+							SubProcess sp=(SubProcess) e;
+							if(sp!=null){
+								List<FlowElement> flowElementList=(List<FlowElement>) sp.getFlowElements();
+								for (FlowElement ee : flowElementList) {
+									Map<String, Object> maps = new HashMap<>();
+									if (ee instanceof StartEvent) {
+										StartEvent startEvent = (StartEvent) ee;
+										maps.put("initiator", startEvent.getInitiator());
+										// map.put("startEvent", startEvent);
+										maps.put("activityId", ee.getId());
+										maps.put("activityName",ee.getName());
+									} else if (ee instanceof UserTask) {
+										UserTask userTask = (UserTask) ee;
+										maps.put("activityId", ee.getId());
+										maps.put("activityName", ee.getName());
+										maps.put("assignee", userTask.getAssignee());
+										maps.put("candidateUsers", userTask.getCandidateUsers());
+										maps.put("candidateGroups", userTask.getCandidateGroups());
+										// map.put("outgoingFlows",
+										// userTask.getOutgoingFlows());
+										// map.put("incomingFlows",
+										// userTask.getIncomingFlows());
+										MultiInstanceLoopCharacteristics ll = userTask.getLoopCharacteristics();
+										if (ll != null) {
+											maps.put("isJoinTask", true);
+											//map.put("loopCharacteristics", userTask.getLoopCharacteristics());
+											
+											maps.put("sequential", userTask.getLoopCharacteristics().isSequential());
+											maps.put("completionCondition",
+													userTask.getLoopCharacteristics().getCompletionCondition());
+											maps.put("elementVariable", userTask.getLoopCharacteristics().getElementVariable());
+											maps.put("inputDataItem", userTask.getLoopCharacteristics().getInputDataItem());
+										}
+
+
+										// map.put("userTask", userTask);
+									} else if (ee instanceof EndEvent) {
+										EndEvent endEvent = (EndEvent) ee;
+										// map.put("endEvent", endEvent);
+										maps.put("activityId", ee.getId());
+										maps.put("activityName",ee.getName());
+									} else if(ee instanceof SequenceFlow){
+										SequenceFlow sequenceFlow = (SequenceFlow) ee;
+										// map.put("sequenceFlow", sequenceFlow);
+										maps.put("conditionExpression", sequenceFlow.getConditionExpression());
+										maps.put("flowId", ee.getId());
+										maps.put("flowName", ee.getName());
+										maps.put("activityId",sequenceFlow.getTargetRef() );
+									}
+									list.add(maps);
+								}
+								
+							}
+							
 						}
 						
 						list.add(map);
@@ -1038,52 +1100,32 @@ public class TodoTaskController {
 				if (task != null) {
 					String processInstanceId = task.getProcessInstanceId();
 					String processDefinitionId = task.getProcessDefinitionId();
-					List<HistoricActivityInstance> list = processEngine.getHistoryService() // 历史相关Service
-							.createHistoricActivityInstanceQuery() // 创建历史活动实例查询
-							.processInstanceId(processInstanceId) // 执行流程实例id
-							.orderByHistoricActivityInstanceStartTime().desc().list();
+					List<HistoricTaskInstance> list = processEngine.getHistoryService() // 历史相关Service
+							.createHistoricTaskInstanceQuery() // 创建历史任务实例查询
+							.processInstanceId(processInstanceId) // 用流程实例id查询
+							.orderByTaskCreateTime().asc()
+							.list();
+
+//					List<Map<String,Object>>  userTaskList=getUserTask(processDefinitionId);
+//					if(userTaskList.isEmpty()){
+//						throw new MyExceptions("获取可以驳回节点失败,根据流程定义Id查询不到流程节点信息！");
+//					}
 					
-					List<Map<String,Object>>  userTaskList=getUserTask(processDefinitionId);
-					if(userTaskList.isEmpty()){
-						throw new MyExceptions("获取可以驳回节点失败,根据流程定义Id查询不到流程节点信息！");
-					}
-					
-					boolean flag=false;
-					if(!list.isEmpty()){
-						for(HistoricActivityInstance hai:list){
-							Map<String,Object> resmap =new HashMap<>();
-							if("userTask".equals(hai.getActivityType())){
-								resmap.put("activityId", hai.getActivityId());
-								resmap.put("activityName", hai.getActivityName());
-							}
-							for(Map<String,Object> map:userTaskList){
-								String isJoinTask=map.get("isJoinTask")==null?"":map.get("isJoinTask").toString();
-								String id=map.get("activityId")==null?"":map.get("activityId").toString();
-								if(StringUtils.isEmpty(isJoinTask)){
-									if(hai.getActivityId().equals(id)){
-										flag=true;
-										break;
-									}
-								}else{
-									break;
-								}
-								
-							}
-							
-							if(flag){
-								resultList.add(resmap);
-							}
-							
-							
-						}
-					}
-					
+//					boolean flag=false;
+//					if(!list.isEmpty()){
+//						for(HistoricTaskInstance hti:list){
+//							
+//							
+//							
+//						}
+//					}
+//					
 					
 					
 					result.put("rtnCode", "1");
 					result.put("rtnMsg", "获取可以驳回节点成功");
 					result.put("bean", null);
-					result.put("beans", resultList);
+					result.put("beans", list);
 					log.info("获取可以驳回节点成功" + result.toString());
 				}
 
@@ -1111,34 +1153,39 @@ public class TodoTaskController {
 		}
 	}
 		
-		private List<Map<String,Object>> getUserTask(String procDefId){
-			List<Map<String, Object>> list = new ArrayList<>();
-			BpmnModel model = repositoryService.getBpmnModel(procDefId);
-			if (model != null) {
-				Collection<FlowElement> flowElements = model.getMainProcess().getFlowElements();
-				for (FlowElement e : flowElements) {
-					Map<String, Object> map = new HashMap<>();
-					if (e instanceof UserTask) {
-						UserTask userTask = (UserTask) e;
-//						map.put("assignee", userTask.getAssignee());
-//						map.put("candidateUsers", userTask.getCandidateUsers());
-//						map.put("candidateGroups", userTask.getCandidateGroups());
-						MultiInstanceLoopCharacteristics ll = userTask.getLoopCharacteristics();
-						if (ll != null) {
-							map.put("isJoinTask", true);
-//							map.put("loopCharacteristics", userTask.getLoopCharacteristics());
-//							map.put("completionCondition",
-//									userTask.getLoopCharacteristics().getCompletionCondition());
-//							map.put("elementVariable", userTask.getLoopCharacteristics().getElementVariable());
-//							map.put("inputDataItem", userTask.getLoopCharacteristics().getInputDataItem());
-						}
-					}
-					map.put("activityId", e.getId());
-					map.put("activityName", e.getName());
-					list.add(map);
-				}
-			}
-			
-			return list;
-		}
+    
+    
+    
+    
+    
+//		private List<Map<String,Object>> getUserTask(String procDefId){
+//			List<Map<String, Object>> list = new ArrayList<>();
+//			BpmnModel model = repositoryService.getBpmnModel(procDefId);
+//			if (model != null) {
+//				Collection<FlowElement> flowElements = model.getMainProcess().getFlowElements();
+//				for (FlowElement e : flowElements) {
+//					Map<String, Object> map = new HashMap<>();
+//					if (e instanceof UserTask) {
+//						UserTask userTask = (UserTask) e;
+////						map.put("assignee", userTask.getAssignee());
+////						map.put("candidateUsers", userTask.getCandidateUsers());
+////						map.put("candidateGroups", userTask.getCandidateGroups());
+//						MultiInstanceLoopCharacteristics ll = userTask.getLoopCharacteristics();
+//						if (ll != null) {
+//							map.put("isJoinTask", true);
+////							map.put("loopCharacteristics", userTask.getLoopCharacteristics());
+////							map.put("completionCondition",
+////									userTask.getLoopCharacteristics().getCompletionCondition());
+////							map.put("elementVariable", userTask.getLoopCharacteristics().getElementVariable());
+////							map.put("inputDataItem", userTask.getLoopCharacteristics().getInputDataItem());
+//						}
+//					}
+//					map.put("activityId", e.getId());
+//					map.put("activityName", e.getName());
+//					list.add(map);
+//				}
+//			}
+//			
+//			return list;
+//		}
 }
