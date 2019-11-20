@@ -19,6 +19,7 @@ import javax.validation.Valid;
 
 import org.activiti.bpmn.model.BoundaryEvent;
 import org.activiti.bpmn.model.BpmnModel;
+import org.activiti.bpmn.model.CallActivity;
 import org.activiti.bpmn.model.EndEvent;
 import org.activiti.bpmn.model.FlowElement;
 import org.activiti.bpmn.model.MultiInstanceLoopCharacteristics;
@@ -82,11 +83,12 @@ public class TodoTaskController {
 	HistoryService historyService;
 	@Autowired
 	private ProcessEngine processEngine;
+
 	@Autowired
 	private IdentityService identityService;
 	@ApiOperation(value = "完成任务",notes = "完成任务")
 	@RequestMapping(value = "/complete", method=RequestMethod.POST,produces="application/json;charset=utf-8")
-	public void completeTask(HttpServletRequest request, HttpServletResponse response) {
+	public void completeTask(HttpServletRequest request, HttpServletResponse response,DelegateExecution execution) {
 		JSONObject jsonParam = null;
 		JSONObject result = new JSONObject();
 		result.put("rtnCode", "-1");
@@ -133,7 +135,6 @@ public class TodoTaskController {
 						result.put("rtnMsg", "完成任务失败,该任务已不在您名下！");
 						throw new MyExceptions("完成任务失败,该任务已不在您名下！");
 					}
-					
 
 					boolean modelSuspended = repositoryService.createProcessDefinitionQuery()
 							.processDefinitionId(processDefinitionId).singleResult().isSuspended();
@@ -148,6 +149,12 @@ public class TodoTaskController {
 						// throw new ValidationError("");
 						throw new ValidationError("已挂起This activity instance has already be suspended.");
 					}
+					
+					
+					
+					
+					
+					
 					taskService.complete(taskId, params);
 					
 					Map<String, Object> paramMap = new HashMap<>();
@@ -972,6 +979,16 @@ public class TodoTaskController {
 									list.add(maps);
 								}
 								
+							}
+							
+						}else if(e instanceof CallActivity){
+							CallActivity callActivity = (CallActivity) e;
+							//map.put("callActivity", callActivity);
+							map.put("inParameters", callActivity.getInParameters());
+							map.put("outParameters", callActivity.getOutParameters());
+							map.put("businessKey", callActivity.getBusinessKey());
+							if(callActivity.getBehavior()!=null){
+								map.put("behavior", callActivity.getBehavior());
 							}
 							
 						}
