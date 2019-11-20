@@ -163,27 +163,6 @@ public class TodoTaskController {
 							}
 						}
 					}
-					List<HistoricActivityInstance> htiList = historyService.createHistoricActivityInstanceQuery()
-							.processInstanceId(processInstanceId).orderByHistoricActivityInstanceStartTime().desc()
-							.list();
-					if (!htiList.isEmpty()) {
-						if (htiList.get(0).getActivityId().startsWith("endevent")) {
-							HistoricActivityInstance hh = htiList.get(0);
-							BpmActRuTask bb = new BpmActRuTask();
-							bb.setName(hh.getActivityName());
-							bb.setTaskDefKey(hh.getActivityId());
-							bb.setProcDefId(hh.getProcessDefinitionId());
-							bb.setProcInstId(hh.getProcessInstanceId());
-							bpmActRuTaskList.add(bb);
-							List<BpmActRuTask> bpmActRuTaskList2 = (List<BpmActRuTask>) bpmActivityService
-									.listByMap(paramMap);
-							if (!bpmActRuTaskList2.isEmpty()) {
-								processEngine.getRuntimeService().deleteProcessInstance(processInstanceId, "结束");
-							}
-
-						}
-
-					}
 
 					dto.setProcDefId(processDefinitionId);
 					dto.setProcInstId(processInstanceId);
