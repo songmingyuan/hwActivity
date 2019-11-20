@@ -34,6 +34,7 @@ import org.activiti.engine.RuntimeService;
 import org.activiti.engine.TaskService;
 import org.activiti.engine.delegate.DelegateExecution;
 import org.activiti.engine.history.HistoricActivityInstance;
+import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.history.HistoricTaskInstance;
 import org.activiti.engine.history.HistoricVariableInstance;
 import org.activiti.engine.history.HistoricVariableInstanceQuery;
@@ -50,6 +51,7 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.TypeReference;
 import com.google.common.collect.ImmutableMap;
 import com.huiway.activiti.dto.ActivitiDto;
 import com.huiway.activiti.entity.BpmActRuTask;
@@ -104,24 +106,14 @@ public class TodoTaskController {
 			log.info("参数" + sb);
 			jsonParam = JSONObject.parseObject(sb.toString());
 			if (jsonParam != null) {
-				String tenantId = jsonParam.getString("tenantId");
-//				if (StringUtils.isBlank(tenantId)) {
-//					throw new MyExceptions("完成任务失败,tenantId不能为空！");
-//				}
+				Map<String, Object> params = JSONObject.parseObject(jsonParam.toJSONString(), new TypeReference<Map<String, Object>>(){});
 				String assignee = jsonParam.getString("assignee");
 				String assigneeKey = jsonParam.getString("assigneeKey");
-				// if(StringUtils.isBlank(assignee)){
-				// throw new MyExceptions("完成任务失败,assignee不能为空！");
-				// }
 				String taskId = jsonParam.getString("taskId");
 				if (StringUtils.isBlank(taskId)) {
 					result.put("rtnMsg", "完成任务失败,参数taskId不能为空！");
 					throw new MyExceptions("完成任务失败,taskId不能为空！");
 				}
-				String judge = jsonParam.getString("judge");
-//				if (StringUtils.isBlank(judge)) {
-//					throw new MyExceptions("完成任务失败,judge不能为空！");
-//				}
 				String userId = jsonParam.getString("userId");
 				if (StringUtils.isBlank(userId)) {
 					
@@ -129,14 +121,6 @@ public class TodoTaskController {
 					throw new MyExceptions("完成任务失败,userId不能为空！");
 				}
 
-				String condition = jsonParam.getString("condition");
-				String conditionValue = jsonParam.getString("conditionValue");
-				String condition2 = jsonParam.getString("condition2");
-				String conditionValue2 = jsonParam.getString("conditionValue2");
-				// String candidateUsers=jsonParam.getString("candidateUsers");
-				// String
-				// candidateGroups=jsonParam.getString("candidateGroups");
-				String isJoinTask = jsonParam.getString("isJoinTask");
 				ActivitiDto dto = new ActivitiDto();
 				List<BpmActRuTask> bpmActRuTaskList = new ArrayList<BpmActRuTask>();
 				Task task = taskService.createTaskQuery().taskId(taskId) // 根据任务id查询
@@ -150,20 +134,6 @@ public class TodoTaskController {
 						throw new MyExceptions("完成任务失败,该任务已不在您名下！");
 					}
 					
-					
-					// if (task.getOwner() != null &&
-					// !task.getOwner().equals("null")) {
-					// DelegationState delegationState =
-					// task.getDelegationState();
-					// if (delegationState.toString().equals("RESOLVED")) {
-					// System.out.println("此委托任务已是完结状态");
-					// } else if (delegationState.toString().equals("PENDING"))
-					// {
-					// taskService.resolveTask(taskId);// 解决委托
-					// } else {
-					// System.out.println("此任务不是委托任务");
-					// }
-					// }
 
 					boolean modelSuspended = repositoryService.createProcessDefinitionQuery()
 							.processDefinitionId(processDefinitionId).singleResult().isSuspended();
@@ -178,75 +148,21 @@ public class TodoTaskController {
 						// throw new ValidationError("");
 						throw new ValidationError("已挂起This activity instance has already be suspended.");
 					}
-
-					Map<String, Object> map = new HashMap<String, Object>();
-					if (!StringUtils.isEmpty(judge)) {
-						map.put("judge", judge);
-					}
-					if (!StringUtils.isEmpty(conditionValue) && !StringUtils.isEmpty(condition)) {
-						map.put(condition, conditionValue);
-					}
-					if (!StringUtils.isEmpty(conditionValue2) && !StringUtils.isEmpty(condition2)) {
-						map.put(condition2, conditionValue2);
-					}
-					if (!StringUtils.isEmpty(assigneeKey)) {
-						if (!StringUtils.isEmpty(assignee)) {
-							map.put(assigneeKey, assignee);
-						} else {
-							List<HistoricVariableInstance> list = processEngine.getHistoryService()
-									.createHistoricVariableInstanceQuery().processInstanceId(processInstanceId).list();
-							if (!list.isEmpty()) {
-								for (HistoricVariableInstance hti : list) {
-									String name = hti.getVariableName();
-									if (assigneeKey.equals(name)) {
-										assignee = (String) hti.getValue();
-										break;
-									}
-								}
-							}
-
-							if (StringUtils.isEmpty(assignee)) {
-								throw new MyExceptions("完成任务失败,查不到任务处理人！");
-							}
-							map.put(assigneeKey, assignee);
-						}
-
-					}
-
-					String inputDataItem = jsonParam.getString("inputDataItem");
-					String inputDataItemValue = jsonParam.getString("inputDataItemValue");
-
-					if (!StringUtils.isEmpty(isJoinTask) && "true".equals(isJoinTask)) {
-						if(StringUtils.isEmpty(inputDataItemValue)){
-							boolean flag = isLastTask(processInstanceId, task.getName());
-							if (flag) {
-								if (!StringUtils.isEmpty(assigneeKey)) {
-									if (!StringUtils.isEmpty(assignee)) {
-										map.put(assigneeKey, assignee);
-									} else {
-										throw new MyExceptions("完成任务失败,assignee不能为空！");
-									}
-								} else {
-									throw new MyExceptions("完成任务失败,assigneeKey不能为空！");
-								}
-							}
-						}
-					}
-					if (!StringUtils.isEmpty(inputDataItem) && !StringUtils.isEmpty(inputDataItemValue)) {
-						String[] userCodes = inputDataItemValue.split(",");
-						List<String> newList = new ArrayList<String>();
-						for (String s : userCodes) {
-							newList.add(s);
-						}
-
-						map = new HashMap<String, Object>();
-						map.put(inputDataItem, newList);
-					}
-
-					taskService.complete(taskId, map);
+					taskService.complete(taskId, params);
+					
 					Map<String, Object> paramMap = new HashMap<>();
 					paramMap.put("PROC_INST_ID_", processInstanceId);
 					bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService.listByMap(paramMap);
+					if(!bpmActRuTaskList.isEmpty()){
+						for(BpmActRuTask bp :bpmActRuTaskList){
+							if(!StringUtils.isEmpty(assigneeKey)&&!StringUtils.isEmpty(bp.getAssignee())){
+								if(bp.getAssignee().equals(assigneeKey)){
+									taskService.setAssignee(bp.getId(), assignee);
+								}
+								
+							}
+						}
+					}
 					List<HistoricActivityInstance> htiList = historyService.createHistoricActivityInstanceQuery()
 							.processInstanceId(processInstanceId).orderByHistoricActivityInstanceStartTime().desc()
 							.list();
@@ -277,9 +193,6 @@ public class TodoTaskController {
 					result.put("beans", bpmActRuTaskList);
 					log.info("完成任务成功" + result.toString());
 				} else {
-					// response.setRtnCode(CodeConstant.FAIL);
-					// response.setMessage("task not found");
-					// return response;
 
 					result.put("rtnCode", "-1");
 					result.put("rtnMsg", "完成任务失败，找不到任务!");
@@ -312,23 +225,79 @@ public class TodoTaskController {
 
 	}
 	
-	/**
-	 * 是否是会签的最后一个任务
-	 * @param processInstanceId
-	 * @param taskName
-	 * @return
-	 */
-	private boolean isLastTask(String processInstanceId, String taskName) {
-		boolean flag = false;
-		List<Task> list = taskService.createTaskQuery().processInstanceId(processInstanceId).taskName(taskName).list();
-		if (list.isEmpty() || list.size() > 1) {
-			flag = false;
-		} else if (list.size() == 1) {
-			flag = true;
-			
+	
+	@ApiOperation(value = "内嵌子流程结束创建回到主流程任务",notes = "内嵌子流程结束创建回到主流程任务")
+	@RequestMapping(value = "/leave/subprocess", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+	public void createTask(HttpServletRequest request, HttpServletResponse response) {
+		JSONObject jsonParam = null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "创建任务失败!");
+		BufferedReader streamReader = null;
+		response.setContentType("application/json;charset=utf-8");
+		try {
+			// 获取输入流
+			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+			// 写入数据到Stringbuilder
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = streamReader.readLine()) != null) {
+				sb.append(line);
+			}
+			log.info("参数" + sb);
+			jsonParam = JSONObject.parseObject(sb.toString());
+			if (jsonParam != null) {
+				Map<String, Object> params = JSONObject.parseObject(jsonParam.toJSONString(),
+						new TypeReference<Map<String, Object>>() {
+						});
+				String procInstId = jsonParam.getString("procInstId");
+				if (StringUtils.isBlank(procInstId)) {
+					result.put("rtnMsg", "创建任务失败,参数procInstId不能为空！");
+					throw new MyExceptions("创建任务失败,procInstId不能为空！");
+				}
+				Task collectTask = taskService.createTaskQuery().processInstanceId(procInstId).singleResult();
+		        taskService.complete(collectTask.getId(), params);
+				
+				ActivitiDto dto = new ActivitiDto();
+				List<BpmActRuTask> bpmActRuTaskList = new ArrayList<BpmActRuTask>();
+
+				Map<String, Object> paramMap = new HashMap<>();
+				paramMap.put("PROC_INST_ID_", procInstId);
+				bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService.listByMap(paramMap);
+
+
+				result.put("rtnCode", "1");
+				result.put("rtnMsg", "创建任务成功!");
+				result.put("bean", dto);
+				result.put("beans", bpmActRuTaskList);
+				log.info("创建任务成功" + result.toString());
+
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("创建任务失败" + e.getMessage());
+		} finally {
+			try {
+				if (null != streamReader) {
+					streamReader.close();
+				}
+				String result2 = result.toString();
+				PrintWriter p = response.getWriter();
+				p.println(result2);
+				p.flush();
+				p.close();
+			} catch (Exception e) {
+				e.getStackTrace();
+				log.info("创建任务失败" + e.getMessage());
+			}
+
 		}
-		return flag;
+
 	}
+	
+	
 
 	@ApiOperation(value = "是否是会签的最后一个任务", notes = "根据流程实例id获取待办任务")
 	@RequestMapping(value = "/get/isLastTask", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
