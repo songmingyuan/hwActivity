@@ -1675,10 +1675,16 @@ public class ActivityTaskController {
 			   }else{
 				   throw new MyExceptions("激活任务失败,This activity instance has already be activated.");
 			   }
+				Map<String, Object> paramMap = new HashMap<>();
+				paramMap.put("PROC_INST_ID_", procInstId);
+				List<BpmActRuTask> bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService.listByMap(paramMap);
+			    
+			    
+			    
 				result.put("rtnCode", "1");
 				result.put("rtnMsg", "激活任务成功!");
 				result.put("bean", null);
-				result.put("beans", null);
+				result.put("beans", bpmActRuTaskList);
 				log.info("激活任务成功" + result.toString());
 			}
 

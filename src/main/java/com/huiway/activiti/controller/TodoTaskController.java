@@ -847,7 +847,133 @@ public class TodoTaskController {
 		}
 
 	}
-	
+    @ApiOperation(value = "获取所有流程任务节点", notes = "获取所有流程任务节点")
+    @RequestMapping(value = "/get/procDefId/task", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+	public void getTodoTaskNode2(HttpServletRequest request, HttpServletResponse response) {
+		JSONObject jsonParam = null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "获取所有流程任务节点失败!");
+		BufferedReader streamReader = null;
+		response.setContentType("application/json;charset=utf-8");
+		try {
+			// 获取输入流
+			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+			// 写入数据到Stringbuilder
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = streamReader.readLine()) != null) {
+				sb.append(line);
+			}
+			log.info("参数" + sb);
+			jsonParam = JSONObject.parseObject(sb.toString());
+			List<Map<String, Object>> list = new ArrayList<>();
+			if (jsonParam != null) {
+				String procDefId = jsonParam.getString("procDefId");
+				if (StringUtils.isBlank(procDefId)) {
+					result.put("rtnCode", "-1");
+					result.put("rtnMsg", "获取所有流程任务节点失败,procDefId不能为空");
+					throw new MyExceptions("获取所有流程任务节点失败,procDefId不能为空！");
+				}
+
+				BpmnModel model = repositoryService.getBpmnModel(procDefId);
+				if (model != null) {
+					Collection<FlowElement> flowElements = model.getMainProcess().getFlowElements();
+					for (FlowElement e : flowElements) {
+						Map<String, Object> map = new HashMap<>();
+						if (e instanceof UserTask) {
+							UserTask userTask = (UserTask) e;
+							map.put("activityId", e.getId());
+							map.put("activityName", e.getName());
+							map.put("assignee", userTask.getAssignee());
+							map.put("candidateUsers", userTask.getCandidateUsers());
+							map.put("candidateGroups", userTask.getCandidateGroups());
+							MultiInstanceLoopCharacteristics ll = userTask.getLoopCharacteristics();
+							if (ll != null) {
+								map.put("isJoinTask", true);
+								map.put("sequential", userTask.getLoopCharacteristics().isSequential());
+								map.put("completionCondition",
+										userTask.getLoopCharacteristics().getCompletionCondition());
+								map.put("elementVariable", userTask.getLoopCharacteristics().getElementVariable());
+								map.put("inputDataItem", userTask.getLoopCharacteristics().getInputDataItem());
+							}
+						}else if(e instanceof SubProcess){
+							SubProcess sp=(SubProcess) e;
+							if(sp!=null){
+								List<FlowElement> flowElementList=(List<FlowElement>) sp.getFlowElements();
+								for (FlowElement ee : flowElementList) {
+									Map<String, Object> maps = new HashMap<>();
+								if (ee instanceof UserTask) {
+										UserTask userTask = (UserTask) ee;
+										maps.put("activityId", ee.getId());
+										maps.put("activityName", ee.getName());
+										maps.put("assignee", userTask.getAssignee());
+										maps.put("candidateUsers", userTask.getCandidateUsers());
+										maps.put("candidateGroups", userTask.getCandidateGroups());
+										MultiInstanceLoopCharacteristics ll = userTask.getLoopCharacteristics();
+										if (ll != null) {
+											maps.put("isJoinTask", true);
+											//map.put("loopCharacteristics", userTask.getLoopCharacteristics());
+											
+											maps.put("sequential", userTask.getLoopCharacteristics().isSequential());
+											maps.put("completionCondition",
+													userTask.getLoopCharacteristics().getCompletionCondition());
+											maps.put("elementVariable", userTask.getLoopCharacteristics().getElementVariable());
+											maps.put("inputDataItem", userTask.getLoopCharacteristics().getInputDataItem());
+										}
+										// map.put("userTask", userTask);
+									} 
+								if(maps.size()>0){
+									list.add(maps);
+								}
+									
+								}
+								
+							}
+							
+						}
+                        if(map.size()>0){
+                        	list.add(map);
+                        }
+						
+					}
+				}
+
+			}
+
+			result.put("rtnCode", "1");
+			result.put("rtnMsg", "获取所有流程任务节点成功!");
+			result.put("bean", null);
+			result.put("beans", list);
+			log.info("获取所有流程节点" + result.toString());
+
+			// 直接将json信息打印出来
+			// System.out.println(jsonParam.toJSONString());
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("获取所有流程任务节点失败" + e.getMessage());
+		} finally {
+			try {
+				if (null != streamReader) {
+					streamReader.close();
+				}
+				String result2 = result.toString();
+				PrintWriter p = response.getWriter();
+				p.println(result2);
+				p.flush();
+				p.close();
+			} catch (Exception e) {
+				e.getStackTrace();
+				log.info("获取所有流程任务节点失败" + e.getMessage());
+			}
+
+		}
+
+	}
+    
+    
+    
     @ApiOperation(value = "获取所有流程节点", notes = "获取所有流程节点")
     @RequestMapping(value = "/get/procDefId", method=RequestMethod.POST,produces="application/json;charset=utf-8")
 	public void getTodoTaskNode(HttpServletRequest request, HttpServletResponse response) {
@@ -976,7 +1102,10 @@ public class TodoTaskController {
 										maps.put("flowName", ee.getName());
 										maps.put("activityId",sequenceFlow.getTargetRef() );
 									}
-									list.add(maps);
+									if(maps.size()>0){
+										list.add(maps);
+									}
+									
 								}
 								
 							}
@@ -993,8 +1122,9 @@ public class TodoTaskController {
 							}
 							
 						}
-						
-						list.add(map);
+						if(map.size()>0){
+							list.add(map);
+						}
 					}
 				}
 
