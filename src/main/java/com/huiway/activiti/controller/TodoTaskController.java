@@ -88,7 +88,7 @@ public class TodoTaskController {
 	private IdentityService identityService;
 	@ApiOperation(value = "完成任务",notes = "完成任务")
 	@RequestMapping(value = "/complete", method=RequestMethod.POST,produces="application/json;charset=utf-8")
-	public void completeTask(HttpServletRequest request, HttpServletResponse response,DelegateExecution execution) {
+	public void completeTask(HttpServletRequest request, HttpServletResponse response) {
 		JSONObject jsonParam = null;
 		JSONObject result = new JSONObject();
 		result.put("rtnCode", "-1");
