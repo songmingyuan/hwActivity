@@ -1535,18 +1535,20 @@ public class ActivityTaskController {
 					result.put("rtnMsg", "暂停任务失败,procInstId不能为空！");
 					throw new MyExceptions("暂停任务失败,procInstId不能为空！");
 				}
+				//挂起流程实例
 				boolean suspended = runtimeService.createProcessInstanceQuery().processInstanceId(procInstId)
 						.singleResult().isSuspended();
 				if (!suspended) {
-					runtimeService.suspendProcessInstanceById(procInstId);
-					result.put("rtnCode", "1");
-					result.put("rtnMsg", "暂停任务成功!");
-					result.put("bean", null);
-					result.put("beans", null);
-					log.info("暂停任务成功" + result.toString());
+		            runtimeService.suspendProcessInstanceById(procInstId);
+		            
 				} else {
-					throw new MyExceptions("暂停任务失败,This activity instance has already be suspened.");
+					throw new MyExceptions("This activity instance has already be suspened.");
 				}
+				result.put("rtnCode", "1");
+				result.put("rtnMsg", "暂停任务成功!");
+				result.put("bean", null);
+				result.put("beans", null);
+				log.info("暂停任务成功" + result.toString());
 			}
 
 			// 直接将json信息打印出来
@@ -1668,16 +1670,16 @@ public class ActivityTaskController {
 				}
 				boolean suspended = runtimeService.createProcessInstanceQuery().processInstanceId(procInstId)
 						.singleResult().isSuspended();
-				if (suspended) {
-					runtimeService.activateProcessInstanceById(procInstId);
-					result.put("rtnCode", "1");
-					result.put("rtnMsg", "激活任务成功!");
-					result.put("bean", null);
-					result.put("beans", null);
-					log.info("激活任务成功" + result.toString());
-				} else {
-					throw new MyExceptions("激活任务失败,This activity instance has already be activated.");
-				}
+			    if (suspended) {
+			            runtimeService.activateProcessInstanceById(procInstId);
+			   }else{
+				   throw new MyExceptions("激活任务失败,This activity instance has already be activated.");
+			   }
+				result.put("rtnCode", "1");
+				result.put("rtnMsg", "激活任务成功!");
+				result.put("bean", null);
+				result.put("beans", null);
+				log.info("激活任务成功" + result.toString());
 			}
 
 			// 直接将json信息打印出来

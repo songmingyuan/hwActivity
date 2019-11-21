@@ -983,21 +983,19 @@ public class TodoTaskController {
 							
 						}else if(e instanceof CallActivity){
 							CallActivity callActivity = (CallActivity) e;
-							//map.put("callActivity", callActivity);
-							map.put("inParameters", callActivity.getInParameters());
-							map.put("outParameters", callActivity.getOutParameters());
-							map.put("businessKey", callActivity.getBusinessKey());
-							if(callActivity.getBehavior()!=null){
-								map.put("behavior", callActivity.getBehavior());
+							if(callActivity!=null){
+								map.put("inParameters", callActivity.getInParameters());
+								map.put("outParameters", callActivity.getOutParameters());
+								map.put("businessKey", callActivity.getBusinessKey());
+								if(callActivity.getBehavior()!=null){
+									map.put("behavior", callActivity.getBehavior());
+								}
 							}
 							
 						}
 						
 						list.add(map);
 					}
-					// System.out.println("flowelement id:" + e.getId() + "
-					// name:" + e.getName() + " class:" +
-					// e.getClass().toString());
 				}
 
 			}
