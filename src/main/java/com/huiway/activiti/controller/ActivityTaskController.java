@@ -944,11 +944,13 @@ public class ActivityTaskController {
 				// Map<String, VariableInstance> variables =
 				// runtimeService.getVariableInstances(currentTask.getExecutionId());
 				String myActivityId = null;
+				String assignee="";
 				List<HistoricActivityInstance> haiList = historyService.createHistoricActivityInstanceQuery()
 						.executionId(myTask.getExecutionId()).finished().list();
 				for (HistoricActivityInstance hai : haiList) {
 					if (myTaskId.equals(hai.getTaskId())) {
 						myActivityId = hai.getActivityId();
+						assignee=hai.getAssignee();
 						break;
 					}
 				}
@@ -990,7 +992,7 @@ public class ActivityTaskController {
 				flowNode.setOutgoingFlows(oriSequenceFlows);
 
 				Task newCurrentTask = taskService.createTaskQuery().processInstanceId(procInstId).singleResult();
-				taskService.setAssignee(newCurrentTask.getId(), userId);
+				taskService.setAssignee(newCurrentTask.getId(), assignee);
 
 				Map<String, Object> paramMap = new HashMap<>();
 				paramMap.put("PROC_INST_ID_", procInstId);
@@ -1057,10 +1059,10 @@ public class ActivityTaskController {
 			jsonParam = JSONObject.parseObject(sb.toString());
 			InputStream inputStream = null;
 			if (jsonParam != null) {
-				String processInstanceId = jsonParam.getString("procInstId");
-				if (StringUtils.isBlank(processInstanceId)) {
-					result.put("rtnMsg", "任务失败,procInstId不能为空！");
-					throw new MyExceptions("任务失败,procInstId不能为空！");
+				String taskId = jsonParam.getString("taskId");
+				if (StringUtils.isBlank(taskId)) {
+					result.put("rtnMsg", "任务失败,taskId不能为空！");
+					throw new MyExceptions("任务失败,taskId不能为空！");
 				}
 				String taskKey = jsonParam.getString("taskDefKey");
 				if (StringUtils.isBlank(taskKey)) {
@@ -1072,11 +1074,12 @@ public class ActivityTaskController {
 					result.put("rtnMsg", "任务失败,userId不能为空！");
 					throw new MyExceptions("任务失败,userId不能为空！");
 				}
-				Task task = taskService.createTaskQuery().processInstanceId(processInstanceId).singleResult();
+				Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
 
 				if (task == null) {
 					throw new MyExceptions("流程未启动或已执行完成，无法撤回");
 				}
+				String processInstanceId=task.getProcessInstanceId();
 				RepositoryService repositoryService = processEngine.getRepositoryService();
 				List<HistoricTaskInstance> htiList = historyService.createHistoricTaskInstanceQuery()
 						.processInstanceId(processInstanceId).orderByTaskCreateTime().desc().list();
@@ -1101,11 +1104,13 @@ public class ActivityTaskController {
 				// Map<String, VariableInstance> variables =
 				// runtimeService.getVariableInstances(currentTask.getExecutionId());
 				String myActivityId = null;
+				String assignee="";
 				List<HistoricActivityInstance> haiList = historyService.createHistoricActivityInstanceQuery()
 						.executionId(myTask.getExecutionId()).finished().list();
 				for (HistoricActivityInstance hai : haiList) {
 					if (myTaskId.equals(hai.getTaskId())) {
 						myActivityId = hai.getActivityId();
+						assignee=hai.getAssignee();
 						break;
 					}
 				}
@@ -1145,7 +1150,7 @@ public class ActivityTaskController {
 				flowNode.setOutgoingFlows(oriSequenceFlows);
 
 				Task newCurrentTask = taskService.createTaskQuery().processInstanceId(processInstanceId).singleResult();
-				taskService.setAssignee(newCurrentTask.getId(), userId);
+				taskService.setAssignee(newCurrentTask.getId(), assignee);
 
 				Map<String, Object> paramMap = new HashMap<>();
 				paramMap.put("PROC_INST_ID_", processInstanceId);

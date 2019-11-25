@@ -210,15 +210,13 @@ public class TodoTaskController {
 		}
 
 	}
-	
-	
-	@ApiOperation(value = "内嵌子流程结束创建回到主流程任务",notes = "内嵌子流程结束创建回到主流程任务")
-	@RequestMapping(value = "/leave/subprocess", method=RequestMethod.POST,produces="application/json;charset=utf-8")
-	public void createTask(HttpServletRequest request, HttpServletResponse response) {
+	@ApiOperation(value = "完成任务",notes = "完成任务")
+	@RequestMapping(value = "/complete/task", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+	public void completeTask2(HttpServletRequest request, HttpServletResponse response) {
 		JSONObject jsonParam = null;
 		JSONObject result = new JSONObject();
 		result.put("rtnCode", "-1");
-		result.put("rtnMsg", "创建任务失败!");
+		result.put("rtnMsg", "完成任务失败!");
 		BufferedReader streamReader = null;
 		response.setContentType("application/json;charset=utf-8");
 		try {
@@ -234,36 +232,62 @@ public class TodoTaskController {
 			log.info("参数" + sb);
 			jsonParam = JSONObject.parseObject(sb.toString());
 			if (jsonParam != null) {
-				Map<String, Object> params = JSONObject.parseObject(jsonParam.toJSONString(),
-						new TypeReference<Map<String, Object>>() {
-						});
-				String procInstId = jsonParam.getString("procInstId");
-				if (StringUtils.isBlank(procInstId)) {
-					result.put("rtnMsg", "创建任务失败,参数procInstId不能为空！");
-					throw new MyExceptions("创建任务失败,procInstId不能为空！");
+				Map<String, Object> params = JSONObject.parseObject(jsonParam.toJSONString(), new TypeReference<Map<String, Object>>(){});
+				String assignee = jsonParam.getString("assignee");
+				String assigneeKey = jsonParam.getString("assigneeKey");
+				String taskId = jsonParam.getString("taskId");
+				if (StringUtils.isBlank(taskId)) {
+					result.put("rtnMsg", "完成任务失败,参数taskId不能为空！");
+					throw new MyExceptions("完成任务失败,taskId不能为空！");
 				}
-				Task collectTask = taskService.createTaskQuery().processInstanceId(procInstId).singleResult();
-		        taskService.complete(collectTask.getId(), params);
-				
+
 				ActivitiDto dto = new ActivitiDto();
 				List<BpmActRuTask> bpmActRuTaskList = new ArrayList<BpmActRuTask>();
+				Task task = taskService.createTaskQuery().taskId(taskId) // 根据任务id查询
+						.singleResult();
+				if (task != null) {
+					String processInstanceId = task.getProcessInstanceId();
+					String processDefinitionId = task.getProcessDefinitionId();
 
-				Map<String, Object> paramMap = new HashMap<>();
-				paramMap.put("PROC_INST_ID_", procInstId);
-				bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService.listByMap(paramMap);
 
+					boolean modelSuspended = repositoryService.createProcessDefinitionQuery()
+							.processDefinitionId(processDefinitionId).singleResult().isSuspended();
+					if (modelSuspended) {
+						// throw new ValidationError("");
+						throw new ValidationError("已挂起This activity model has already be suspended.");
+					}
 
-				result.put("rtnCode", "1");
-				result.put("rtnMsg", "创建任务成功!");
-				result.put("bean", dto);
-				result.put("beans", bpmActRuTaskList);
-				log.info("创建任务成功" + result.toString());
+					boolean instSuspended = runtimeService.createProcessInstanceQuery()
+							.processInstanceId(processInstanceId).singleResult().isSuspended();
+					if (instSuspended) {
+						// throw new ValidationError("");
+						throw new ValidationError("已挂起This activity instance has already be suspended.");
+					}
+					taskService.complete(taskId);
+					Map<String, Object> paramMap = new HashMap<>();
+					paramMap.put("PROC_INST_ID_", processInstanceId);
+					bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService.listByMap(paramMap);
+					dto.setProcDefId(processDefinitionId);
+					dto.setProcInstId(processInstanceId);
+					result.put("rtnCode", "1");
+					result.put("rtnMsg", "完成任务成功!");
+					result.put("bean", dto);
+					result.put("beans", bpmActRuTaskList);
+					log.info("完成任务成功" + result.toString());
+				} else {
+
+					result.put("rtnCode", "-1");
+					result.put("rtnMsg", "完成任务失败，找不到任务!");
+					throw new MyExceptions("完成任务失败，找不到任务!");
+				}
 
 			}
 
+			// 直接将json信息打印出来
+			// System.out.println(jsonParam.toJSONString());
 		} catch (Exception e) {
 			e.printStackTrace();
-			log.info("创建任务失败" + e.getMessage());
+			log.info("完成任务失败" + e.getMessage());
 		} finally {
 			try {
 				if (null != streamReader) {
@@ -276,12 +300,84 @@ public class TodoTaskController {
 				p.close();
 			} catch (Exception e) {
 				e.getStackTrace();
-				log.info("创建任务失败" + e.getMessage());
+				log.info("完成任务失败" + e.getMessage());
 			}
 
 		}
 
 	}
+	
+//	@ApiOperation(value = "创建任务",notes = "创建任务")
+//	@RequestMapping(value = "/leave/subprocess", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+//	public void createTask(HttpServletRequest request, HttpServletResponse response) {
+//		JSONObject jsonParam = null;
+//		JSONObject result = new JSONObject();
+//		result.put("rtnCode", "-1");
+//		result.put("rtnMsg", "创建任务失败!");
+//		BufferedReader streamReader = null;
+//		response.setContentType("application/json;charset=utf-8");
+//		try {
+//			// 获取输入流
+//			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+//
+//			// 写入数据到Stringbuilder
+//			StringBuilder sb = new StringBuilder();
+//			String line = null;
+//			while ((line = streamReader.readLine()) != null) {
+//				sb.append(line);
+//			}
+//			log.info("参数" + sb);
+//			jsonParam = JSONObject.parseObject(sb.toString());
+//			if (jsonParam != null) {
+//				Map<String, Object> params = JSONObject.parseObject(jsonParam.toJSONString(),
+//						new TypeReference<Map<String, Object>>() {
+//						});
+//				String procInstId = jsonParam.getString("procInstId");
+//				if (StringUtils.isBlank(procInstId)) {
+//					result.put("rtnMsg", "创建任务失败,参数procInstId不能为空！");
+//					throw new MyExceptions("创建任务失败,procInstId不能为空！");
+//				}
+//				Task collectTask = taskService.createTaskQuery().processInstanceId(procInstId).singleResult();
+//				
+//				ActivitiDto dto = new ActivitiDto();
+//				List<BpmActRuTask> bpmActRuTaskList = new ArrayList<BpmActRuTask>();
+//
+//				Map<String, Object> paramMap = new HashMap<>();
+//				paramMap.put("PROC_INST_ID_", procInstId);
+//				bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService.listByMap(paramMap);
+//                if(collectTask==null){
+//                	throw new MyExceptions("创建任务失败");
+//                }
+//
+//				result.put("rtnCode", "1");
+//				result.put("rtnMsg", "创建任务成功!");
+//				result.put("bean", dto);
+//				result.put("beans", bpmActRuTaskList);
+//				log.info("创建任务成功" + result.toString());
+//
+//			}
+//
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//			log.info("创建任务失败" + e.getMessage());
+//		} finally {
+//			try {
+//				if (null != streamReader) {
+//					streamReader.close();
+//				}
+//				String result2 = result.toString();
+//				PrintWriter p = response.getWriter();
+//				p.println(result2);
+//				p.flush();
+//				p.close();
+//			} catch (Exception e) {
+//				e.getStackTrace();
+//				log.info("创建任务失败" + e.getMessage());
+//			}
+//
+//		}
+//
+//	}
 	
 	
 
@@ -1160,13 +1256,13 @@ public class TodoTaskController {
 
 	}
  
-    @ApiOperation(value = "获取可以驳回节点", notes = "根据任务id获取可以驳回的节点")
+    @ApiOperation(value = "根据任务id获取历史任务节点", notes = "根据任务id获取历史任务节点")
     @RequestMapping(value = "/actiivty/reject", method=RequestMethod.POST,produces="application/json;charset=utf-8")
 	public void getActivityRuTask(HttpServletRequest request, HttpServletResponse response) {
 		JSONObject jsonParam = null;
 		JSONObject result = new JSONObject();
 		result.put("rtnCode", "-1");
-		result.put("rtnMsg", "获取可以驳回节点失败!");
+		result.put("rtnMsg", "获取历史任务失败!");
 		result.put("procDefId", null);
 		BufferedReader streamReader = null;
 		response.setContentType("application/json;charset=utf-8");
@@ -1185,41 +1281,24 @@ public class TodoTaskController {
 			if (jsonParam != null) {
 				String taskId = jsonParam.getString("taskId");
 				if (StringUtils.isBlank(taskId)) {
-					throw new MyExceptions("获取可以驳回节点失败,taskId不能为空！");
+					throw new MyExceptions("获取历史任务失败,taskId不能为空！");
 				}
 				Task task = taskService.createTaskQuery().taskId(taskId) // 根据任务id查询
 						.singleResult();
-				List<Map<String,Object>> resultList=new ArrayList<>();
 				if (task != null) {
 					String processInstanceId = task.getProcessInstanceId();
-					String processDefinitionId = task.getProcessDefinitionId();
 					List<HistoricTaskInstance> list = processEngine.getHistoryService() // 历史相关Service
 							.createHistoricTaskInstanceQuery() // 创建历史任务实例查询
-							.processInstanceId(processInstanceId) // 用流程实例id查询
-							.orderByTaskCreateTime().asc()
+							.processInstanceId(processInstanceId).finished()
+							// 用流程实例id查询
+							.orderByTaskCreateTime().desc()
 							.list();
-
-//					List<Map<String,Object>>  userTaskList=getUserTask(processDefinitionId);
-//					if(userTaskList.isEmpty()){
-//						throw new MyExceptions("获取可以驳回节点失败,根据流程定义Id查询不到流程节点信息！");
-//					}
-					
-//					boolean flag=false;
-//					if(!list.isEmpty()){
-//						for(HistoricTaskInstance hti:list){
-//							
-//							
-//							
-//						}
-//					}
-//					
-					
 					
 					result.put("rtnCode", "1");
-					result.put("rtnMsg", "获取可以驳回节点成功");
+					result.put("rtnMsg", "获取历史任务成功");
 					result.put("bean", null);
 					result.put("beans", list);
-					log.info("获取可以驳回节点成功" + result.toString());
+					log.info("获取历史任务成功" + result.toString());
 				}
 
 			}
@@ -1227,7 +1306,7 @@ public class TodoTaskController {
 			// 直接将json信息打印出来
 		} catch (Exception e) {
 			e.printStackTrace();
-			log.info("获取可以驳回节点失败" + e.getMessage());
+			log.info("获取历史任务失败" + e.getMessage());
 		} finally {
 			try {
 				if (null != streamReader) {
@@ -1240,45 +1319,15 @@ public class TodoTaskController {
 				p.close();
 			} catch (Exception e) {
 				e.getStackTrace();
-				log.info("获取可以驳回节点失败" + e.getMessage());
+				log.info("获取历史任务失败" + e.getMessage());
 			}
 
 		}
 	}
 		
     
+
     
     
-    
-    
-//		private List<Map<String,Object>> getUserTask(String procDefId){
-//			List<Map<String, Object>> list = new ArrayList<>();
-//			BpmnModel model = repositoryService.getBpmnModel(procDefId);
-//			if (model != null) {
-//				Collection<FlowElement> flowElements = model.getMainProcess().getFlowElements();
-//				for (FlowElement e : flowElements) {
-//					Map<String, Object> map = new HashMap<>();
-//					if (e instanceof UserTask) {
-//						UserTask userTask = (UserTask) e;
-////						map.put("assignee", userTask.getAssignee());
-////						map.put("candidateUsers", userTask.getCandidateUsers());
-////						map.put("candidateGroups", userTask.getCandidateGroups());
-//						MultiInstanceLoopCharacteristics ll = userTask.getLoopCharacteristics();
-//						if (ll != null) {
-//							map.put("isJoinTask", true);
-////							map.put("loopCharacteristics", userTask.getLoopCharacteristics());
-////							map.put("completionCondition",
-////									userTask.getLoopCharacteristics().getCompletionCondition());
-////							map.put("elementVariable", userTask.getLoopCharacteristics().getElementVariable());
-////							map.put("inputDataItem", userTask.getLoopCharacteristics().getInputDataItem());
-//						}
-//					}
-//					map.put("activityId", e.getId());
-//					map.put("activityName", e.getName());
-//					list.add(map);
-//				}
-//			}
-//			
-//			return list;
-//		}
+
 }
