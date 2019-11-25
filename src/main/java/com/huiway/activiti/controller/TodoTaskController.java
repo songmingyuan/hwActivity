@@ -876,23 +876,56 @@ public class TodoTaskController {
 						.singleResult().getProcessDefinitionId();
 
 				BpmnModel model = repositoryService.getBpmnModel(definitionId);
+				boolean flag=false;
+				if (model != null) {
+					Collection<FlowElement> flowElements = model.getMainProcess().getFlowElements();
+					for (FlowElement e : flowElements) {
+						if(e instanceof SubProcess){
+							flag=true;
+							break;
+						}
+					}
+				}
+				
 				List<SequenceFlow> sequenceFlowList;
 				FlowElement activeEl = model.getMainProcess().getFlowElement(activityId);
-				List<Map<String, String>> maplist = new ArrayList<>();
-				BpmnModel model2 = repositoryService.getBpmnModel(processDefinitionId);
-				if (model2 != null) {
-					Collection<FlowElement> flowElements = model2.getMainProcess().getFlowElements();
-					for (FlowElement e : flowElements) {
-						Map<String, String> map = new HashMap<>();
+				if(activeEl==null){
+					activeEl=model.getMainProcess().getFlowElement(activityId, flag);
+				}
+				
+				List<Map<String, Object>> maplist = new ArrayList<>();
+				if (model != null) {
+					Collection<FlowElement> flowElements2 = model.getMainProcess().getFlowElements();
+					for (FlowElement e : flowElements2) {
+						Map<String, Object> map = new HashMap<>();
+//						if(e instanceof SubProcess){
+//							SubProcess sp=(SubProcess) e;
+//							if(sp!=null){
+//								List<FlowElement> flowElementList=(List<FlowElement>) sp.getFlowElements();
+//								for (FlowElement ee : flowElementList) {
+//									map.put("activityId", ee.getId());
+//									map.put("activityName", ee.getName());
+//									map.put("ee",ee);
+//									maplist.add(map);
+//								}
+//								
+//							}
+//						}else{
+//							map.put("activityId", e.getId());
+//							map.put("activityName", e.getName());
+//							maplist.add(map);
+//						}
 						map.put("activityId", e.getId());
 						map.put("activityName", e.getName());
 						maplist.add(map);
+						
+						
+					
 					}
-					// System.out.println("flowelement id:" + e.getId() + "
-					// name:" + e.getName() + " class:" +
-					// e.getClass().toString());
 				}
 				List<Map<String, String>> list = new ArrayList<Map<String, String>>();
+				
+				
 				if (activeEl instanceof org.activiti.bpmn.model.UserTask) { // 节点
 					sequenceFlowList = ((org.activiti.bpmn.model.UserTask) activeEl).getOutgoingFlows();// 流出信息
 					for (SequenceFlow sequenceFlow : sequenceFlowList) {
@@ -900,7 +933,7 @@ public class TodoTaskController {
 						maps.put("condition", sequenceFlow.getConditionExpression());
 						maps.put("activityId", sequenceFlow.getTargetRef());
 
-						for (Map<String, String> m : maplist) {
+						for (Map<String, Object> m : maplist) {
 							if (sequenceFlow.getTargetRef().equals(m.get("activityId").toString())) {
 								maps.put("activityName", m.get("activityName").toString());
 							}
