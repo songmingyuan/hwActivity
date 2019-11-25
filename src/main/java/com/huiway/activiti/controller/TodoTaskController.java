@@ -149,47 +149,36 @@ public class TodoTaskController {
 						// throw new ValidationError("");
 						throw new ValidationError("已挂起This activity instance has already be suspended.");
 					}
-					
+					taskService.complete(taskId, params);
 					if (!StringUtils.isEmpty(assigneeKey)) {
-						if (!StringUtils.isEmpty(assignee)) {
-							boolean flag=false;
-							List<HistoricVariableInstance> list = processEngine.getHistoryService()
-									.createHistoricVariableInstanceQuery().processInstanceId(processInstanceId).orderByProcessInstanceId().asc().list();
-							if (!list.isEmpty()) {
-								for (HistoricVariableInstance hti : list) {
-									String name = hti.getVariableName();
-									if (assigneeKey.equals(name)) {
-										 
-										List<HistoricProcessInstance> list2 =processEngine.getHistoryService().createHistoricProcessInstanceQuery()
-											.processInstanceId(processInstanceId).list();	
-										if(!list2.isEmpty()){
-											for (HistoricProcessInstance hi : list2) {
-												assignee =hi.getStartUserId();
-												flag=true;
-												break;
-												
-											}
+						boolean flag=false;
+						List<HistoricVariableInstance> list = processEngine.getHistoryService()
+								.createHistoricVariableInstanceQuery().processInstanceId(processInstanceId).orderByProcessInstanceId().asc().list();
+						if (!list.isEmpty()) {
+							for (HistoricVariableInstance hti : list) {
+								String name = hti.getVariableName();
+								if (assigneeKey.equals(name)) {
+									 
+									List<HistoricProcessInstance> list2 =processEngine.getHistoryService().createHistoricProcessInstanceQuery()
+										.processInstanceId(processInstanceId).list();	
+									if(!list2.isEmpty()){
+										for (HistoricProcessInstance hi : list2) {
+											assignee =hi.getStartUserId();
+											flag=true;
+											break;
+											
 										}
 									}
-									if(flag){
-										break;
-									}
+								}
+								if(flag){
+									break;
 								}
 							}
-							
-							if (StringUtils.isEmpty(assignee)) {
-								throw new MyExceptions("完成任务失败,查不到任务处理人！");
-							}
-							params.put(assigneeKey, assignee);
 						}
+						
 
-					}
-					
-					
-					
-					
-					taskService.complete(taskId, params);
-					
+				}
+				
 					Map<String, Object> paramMap = new HashMap<>();
 					paramMap.put("PROC_INST_ID_", processInstanceId);
 					bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService.listByMap(paramMap);
