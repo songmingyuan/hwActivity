@@ -899,23 +899,24 @@ public class ActivityTaskController {
 			jsonParam = JSONObject.parseObject(sb.toString());
 			InputStream inputStream = null;
 			if (jsonParam != null) {
-				String procInstId = jsonParam.getString("procInstId");
-				if (StringUtils.isBlank(procInstId)) {
-					result.put("rtnMsg", "只撤回到上一步流程节点任务失败,procInstId不能为空！");
-					throw new MyExceptions("只撤回到上一步流程节点任务失败,procInstId不能为空！");
+				String taskId = jsonParam.getString("taskId");
+				if (StringUtils.isBlank(taskId)) {
+					result.put("rtnMsg", "只撤回到上一步流程节点任务失败,taskId不能为空！");
+					throw new MyExceptions("只撤回到上一步流程节点任务失败,taskId不能为空！");
 				}
+				String assigneeKey = jsonParam.getString("assigneeKey");
 				String userId = jsonParam.getString("userId");
 				if (StringUtils.isBlank(userId)) {
 					throw new MyExceptions("只撤回到上一步流程节点失败,userId不能为空！");
 				}
 				TaskService taskService = processEngine.getTaskService();
 
-				Task task = taskService.createTaskQuery().processInstanceId(procInstId).singleResult();
+				Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
 
 				if (task == null) {
 					throw new ValidationError("流程未启动或已执行完成，无法撤回");
 				}
-
+                String procInstId=task.getProcessInstanceId();
 				HistoryService historyService = processEngine.getHistoryService();
 				RepositoryService repositoryService = processEngine.getRepositoryService();
 				List<HistoricTaskInstance> htiList = historyService.createHistoricTaskInstanceQuery()
@@ -987,7 +988,7 @@ public class ActivityTaskController {
 				// currentVariables.put("applier", userId);
 				// 完成任务
 				// taskService.complete(task.getId(), currentVariables);
-				taskService.complete(task.getId(), ImmutableMap.of("assignee", userId));
+				taskService.complete(task.getId(), ImmutableMap.of(assigneeKey, userId));
 				// 恢复原方向
 				flowNode.setOutgoingFlows(oriSequenceFlows);
 
@@ -1074,6 +1075,7 @@ public class ActivityTaskController {
 					result.put("rtnMsg", "任务失败,userId不能为空！");
 					throw new MyExceptions("任务失败,userId不能为空！");
 				}
+				String assigneeKey = jsonParam.getString("assigneeKey");
 				Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
 
 				if (task == null) {
@@ -1094,7 +1096,7 @@ public class ActivityTaskController {
 				}
 
 				if (null == myTaskId) {
-					throw new ValidationError("找不到节点，无法撤回");
+					throw new ValidationError("找不到节点，无法撤回");	
 				}
 
 				String processDefinitionId = myTask.getProcessDefinitionId();
@@ -1104,9 +1106,9 @@ public class ActivityTaskController {
 				// Map<String, VariableInstance> variables =
 				// runtimeService.getVariableInstances(currentTask.getExecutionId());
 				String myActivityId = null;
-				String assignee="";
 				List<HistoricActivityInstance> haiList = historyService.createHistoricActivityInstanceQuery()
 						.executionId(myTask.getExecutionId()).finished().list();
+				String assignee="";
 				for (HistoricActivityInstance hai : haiList) {
 					if (myTaskId.equals(hai.getTaskId())) {
 						myActivityId = hai.getActivityId();
@@ -1145,7 +1147,7 @@ public class ActivityTaskController {
 				// currentVariables.put("applier", userId);
 
 				// 完成任务
-				taskService.complete(task.getId(), ImmutableMap.of("assignee", userId));
+				taskService.complete(task.getId(), ImmutableMap.of(assigneeKey, userId));
 				// 恢复原方向
 				flowNode.setOutgoingFlows(oriSequenceFlows);
 
