@@ -1346,7 +1346,7 @@ public class TodoTaskController {
 							.createHistoricTaskInstanceQuery() // 创建历史任务实例查询
 							.processInstanceId(processInstanceId).finished()
 							// 用流程实例id查询
-							.orderByTaskCreateTime().desc()
+							.orderByHistoricTaskInstanceEndTime().desc()
 							.list();
 					
 					result.put("rtnCode", "1");
