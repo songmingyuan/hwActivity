@@ -520,14 +520,9 @@ public class TodoTaskController {
 				if (!tasks.isEmpty()) {
 					for (Task task : tasks) {
 						String taskId = task.getId();
-						Task t = taskService.createTaskQuery().taskId(taskId).singleResult();
-						String processInstanceId = t.getProcessInstanceId();
-						Map<String, Object> paramMap = new HashMap<>();
-						paramMap.put("PROC_INST_ID_", processInstanceId);
-						paramMap.put("ID_", taskId);
-						List<BpmActRuTask> bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService
-								.listByMap(paramMap);
-						ruList.addAll(bpmActRuTaskList);
+						BpmActRuTask bpmActRuTaskList = (BpmActRuTask) bpmActivityService.getById(taskId);
+						ruList.add(bpmActRuTaskList);
+						
 					}
 
 				} 
@@ -785,14 +780,9 @@ public class TodoTaskController {
 				if (!tasks.isEmpty()) {
 					for (Task task : tasks) {
 						String taskId = task.getId();
-						Task t = taskService.createTaskQuery().taskId(taskId).singleResult();
-						String processInstanceId = t.getProcessInstanceId();
-						Map<String, Object> paramMap = new HashMap<>();
-						paramMap.put("PROC_INST_ID_", processInstanceId);
-						paramMap.put("ID_", taskId);
-						List<BpmActRuTask> bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService
-								.listByMap(paramMap);
-						ruList.addAll(bpmActRuTaskList);
+						BpmActRuTask bpmActRuTaskList = (BpmActRuTask) bpmActivityService.getById(taskId);
+						ruList.add(bpmActRuTaskList);
+						
 					}
 
 				}
