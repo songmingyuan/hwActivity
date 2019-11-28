@@ -104,14 +104,7 @@ public class ActivityTaskController {
 			log.info("参数" + sb);
 			jsonParam = JSONObject.parseObject(sb.toString());
 			if (jsonParam != null) {
-//				String tenantId = jsonParam.getString("tenantId");
-//				if (StringUtils.isBlank(tenantId)) {
-//					throw new MyExceptions("启动流程失败,tenantId不能为空！");
-//				}
 				String assignee = jsonParam.getString("assignee");
-				// if(StringUtils.isBlank(assignee)){
-				// throw new MyExceptions("启动流程失败,assignee不能为空！");
-				// }
 				String assigneeKey = jsonParam.getString("assigneeKey");
 
 				String procDefId = jsonParam.getString("procDefId");
@@ -135,13 +128,8 @@ public class ActivityTaskController {
 				if (!StringUtils.isEmpty(assigneeKey) && !StringUtils.isEmpty(assignee)) {
 					map.put(assigneeKey, assignee);
 				}
-				// map.put("", value)
 				processEngine.getIdentityService().setAuthenticatedUserId(userId);
 				ProcessInstance pi = runtimeService.startProcessInstanceById(procDefId, businessKey, map);
-				// .startProcessInstanceByKeyAndTenantId(procDefId,
-				// businessKey,
-				// map,
-				// tenantId);
 
 				dto.setProcDefId(procDefId);
 				dto.setProcInstId(pi.getId());
@@ -156,8 +144,6 @@ public class ActivityTaskController {
 				log.info("启动流程成功" + result.toString());
 			}
 
-			// 直接将json信息打印出来
-			// System.out.println(jsonParam.toJSONString());
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.info("启动流程" + e.getMessage());
@@ -224,8 +210,6 @@ public class ActivityTaskController {
 				result.put("beans", null);
 				log.info("删除成功" + result.toString());
 			}
-			// 直接将json信息打印出来
-			// System.out.println(jsonParam.toJSONString());
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.info("删除失败" + e.getMessage());
@@ -302,8 +286,6 @@ public class ActivityTaskController {
 				log.info("删除成功" + result.toString());
 			}
 
-			// 直接将json信息打印出来
-			// System.out.println(jsonParam.toJSONString());
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.info("删除失败" + e.getMessage());
@@ -371,9 +353,6 @@ public class ActivityTaskController {
 				result.put("beans", null);
 				log.info("删除成功" + result.toString());
 			}
-
-			// 直接将json信息打印出来
-			// System.out.println(jsonParam.toJSONString());
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.info("删除失败" + e.getMessage());
@@ -448,8 +427,6 @@ public class ActivityTaskController {
 				result.put("beans", null);
 				log.info("添加成功" + result.toString());
 			}
-			// 直接将json信息打印出来
-			// System.out.println(jsonParam.toJSONString());
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.info("添加失败" + e.getMessage());
@@ -515,11 +492,6 @@ public class ActivityTaskController {
 						result.put("rtnMsg", "添加失败,groupsName不能为空！");
 						throw new MyExceptions("添加失败,groupsName不能为空！");
 					}
-					// String userList=(String) map.get("userList");
-					// if(StringUtils.isBlank(userList)){
-					// throw new MyExceptions("添加,userList不能为空！");
-					// }
-					
 					
 					Group g=identityService.createGroupQuery().groupId(groupsId).singleResult();
 					if(g==null){
@@ -527,17 +499,6 @@ public class ActivityTaskController {
 						group.setName(groupsName);
 						identityService.saveGroup(group);
 					}
-					//
-					// String[] userIds=userList.split(",");
-					//
-					// for(String uId:userIds){
-					// if(!StringUtils.isBlank(uId)){
-					// User user=identityService.newUser(uId);
-					// identityService.saveUser(user);
-					// identityService.createMembership(uId,groupsId);
-					// }
-					//
-					// }
 
 				}
 				result.put("rtnCode", "1");
@@ -546,8 +507,6 @@ public class ActivityTaskController {
 				result.put("beans", null);
 				log.info("添加成功" + result.toString());
 			}
-			// 直接将json信息打印出来
-			// System.out.println(jsonParam.toJSONString());
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.info("添加失败" + e.getMessage());
@@ -999,10 +958,6 @@ public class ActivityTaskController {
 				paramMap.put("PROC_INST_ID_", procInstId);
 				List<BpmActRuTask> bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService.listByMap(paramMap);
 
-				// RestResponse response = new RestResponse();
-				// response.setBeans(bpmActRuTaskList);
-				// return response;
-				//
 
 				result.put("rtnCode", "1");
 
@@ -1158,10 +1113,6 @@ public class ActivityTaskController {
 				paramMap.put("PROC_INST_ID_", processInstanceId);
 				List<BpmActRuTask> bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService.listByMap(paramMap);
 
-				// RestResponse response = new RestResponse();
-				// response.setBeans(bpmActRuTaskList);
-				// return response;
-				//
 
 				result.put("rtnCode", "1");
 
@@ -1352,8 +1303,6 @@ public class ActivityTaskController {
 				log.info("删除流程任务成功" + result.toString());
 			}
 
-			// 直接将json信息打印出来
-			// System.out.println(jsonParam.toJSONString());
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.info("删除流程任务失败" + e.getMessage());
@@ -1442,8 +1391,6 @@ public class ActivityTaskController {
 				log.info("获取任务网关信息成功" + result.toString());
 			}
 
-			// 直接将json信息打印出来
-			// System.out.println(jsonParam.toJSONString());
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.info("获取任务网关信息失败" + e.getMessage());
@@ -1608,10 +1555,6 @@ public class ActivityTaskController {
 					result.put("rtnMsg", "转派任务失败,taskId不能为空！");
 					throw new MyExceptions("转派任务失败,taskId不能为空！");
 				}
-//				String userId = jsonParam.getString("userId");
-//				if (StringUtils.isBlank(userId)) {
-//					throw new MyExceptions("转派任务失败,userId不能为空！");
-//				}
 				String receiver = jsonParam.getString("receiver");
 				if (StringUtils.isBlank(receiver)) {
 					result.put("rtnMsg", "转派任务失败,receiver不能为空！");
@@ -1760,7 +1703,6 @@ public class ActivityTaskController {
 				log.info("获取历史任务成功" + result.toString());
 			}
 
-			// 直接将json信息打印出来
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.info("获取历史任务失败" + e.getMessage());
@@ -1782,13 +1724,13 @@ public class ActivityTaskController {
 		}
 	}
     
-    @ApiOperation(value = "获取任务历史节点", notes = "根据流程实例id获取历史节点")
+    @ApiOperation(value = "获取历史活动节点", notes = "根据流程实例id获取历史节点")
     @RequestMapping(value = "/actiivty/tasks", method=RequestMethod.POST,produces="application/json;charset=utf-8")
 	public void getActivityRuTask(HttpServletRequest request, HttpServletResponse response) {
 		JSONObject jsonParam = null;
 		JSONObject result = new JSONObject();
 		result.put("rtnCode", "-1");
-		result.put("rtnMsg", "获取任务历史节点失败!");
+		result.put("rtnMsg", "获取历史活动节点失败!");
 		result.put("procDefId", null);
 		BufferedReader streamReader = null;
 		response.setContentType("application/json;charset=utf-8");
@@ -1808,8 +1750,8 @@ public class ActivityTaskController {
 
 				String procInstId = jsonParam.getString("procInstId");
 				if (StringUtils.isBlank(procInstId)) {
-					result.put("rtnMsg", "获取任务历史节点失败,procInstId不能为空！");
-					throw new MyExceptions("任务历史节点失败,procInstId不能为空！");
+					result.put("rtnMsg", "获取历史活动节点失败,procInstId不能为空！");
+					throw new MyExceptions("任务历史活动节点失败,procInstId不能为空！");
 				}
 				List<HistoricActivityInstance> list = processEngine.getHistoryService() // 历史相关Service
 						.createHistoricActivityInstanceQuery() // 创建历史活动实例查询
@@ -1825,7 +1767,7 @@ public class ActivityTaskController {
 			// 直接将json信息打印出来
 		} catch (Exception e) {
 			e.printStackTrace();
-			log.info("任务历史节点失败" + e.getMessage());
+			log.info("历史活动节点失败" + e.getMessage());
 		} finally {
 			try {
 				if (null != streamReader) {
@@ -1838,7 +1780,7 @@ public class ActivityTaskController {
 				p.close();
 			} catch (Exception e) {
 				e.getStackTrace();
-				log.info("任务历史节点失败" + e.getMessage());
+				log.info("历史活动节点失败" + e.getMessage());
 			}
 
 		}

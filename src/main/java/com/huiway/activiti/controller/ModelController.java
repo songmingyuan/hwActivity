@@ -36,9 +36,8 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 
-//@Profile({"dev","test"})
 @Slf4j
-@Api(value="流程模型管理")
+@Api(value = "流程模型管理")
 @RestController
 @RequestMapping("/activiti/models")
 public class ModelController {
@@ -47,8 +46,9 @@ public class ModelController {
 	private RepositoryService repositoryService;
 	@Autowired
 	private StandaloneProcessEngineConfiguration processEngineConfiguration;
+
 	@ApiOperation(value = "部署流程模型")
-	@RequestMapping(value = "/deploy", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+	@RequestMapping(value = "/deploy", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
 	public void deploy(HttpServletRequest request, HttpServletResponse response) {
 		response.setContentType("application/json;charset=utf-8");
 		JSONObject jsonParam = null;
@@ -93,7 +93,7 @@ public class ModelController {
 				// 获取流程定义
 				ProcessDefinition processDefinition = repositoryService.createProcessDefinitionQuery()
 						.deploymentId(deploy.getId()).singleResult();
-				Map<String,Object> rtnMap=new HashMap<>();
+				Map<String, Object> rtnMap = new HashMap<>();
 				//
 				if (StringUtils.isBlank(processDefinition.getId())) {
 					throw new MyExceptions("部署失败,流程定义不能为空！");
@@ -101,7 +101,7 @@ public class ModelController {
 				rtnMap.put("procDefId", processDefinition.getId());
 				rtnMap.put("key", processDefinition.getKey());
 				rtnMap.put("name", processDefinition.getName());
-				
+
 				result.put("rtnMap", rtnMap);
 				result.put("rtnCode", "1");
 				result.put("rtnMsg", "部署成功!");
@@ -130,9 +130,8 @@ public class ModelController {
 
 	}
 
-	
-	@ApiOperation(value = "获取流程图",notes = "根据流程定义id获取流程图")
-	@RequestMapping(value = "/diagram", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+	@ApiOperation(value = "获取流程图", notes = "根据流程定义id获取流程图")
+	@RequestMapping(value = "/diagram", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
 	public void diagram(HttpServletRequest request, HttpServletResponse response) {
 		response.setContentType("application/json;charset=utf-8");
 		JSONObject jsonParam = null;
@@ -193,11 +192,10 @@ public class ModelController {
 
 		}
 	}
-	
-	
-	    @ApiOperation(value = "移除已部署的流程模型", notes = "根据流程部署id移除已经部署的模型")
-	    @RequestMapping(value = "/delete", method=RequestMethod.POST,produces="application/json;charset=utf-8")
-	    public void delete(HttpServletRequest request, HttpServletResponse response) {
+
+	@ApiOperation(value = "移除已部署的流程模型", notes = "根据流程部署id移除已经部署的模型")
+	@RequestMapping(value = "/delete", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+	public void delete(HttpServletRequest request, HttpServletResponse response) {
 
 		response.setContentType("application/json;charset=utf-8");
 		JSONObject jsonParam = null;
@@ -264,11 +262,9 @@ public class ModelController {
 		}
 
 	}
-	
-	
-	
-	@ApiOperation(value = "获取流程节点",notes = "根据流程定义id获取流程节点")
-	@RequestMapping(value = "/nodes", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+
+	@ApiOperation(value = "获取流程节点", notes = "根据流程定义id获取流程节点")
+	@RequestMapping(value = "/nodes", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
 	public void getModelNodes(HttpServletRequest request, HttpServletResponse response) {
 		response.setContentType("application/json;charset=utf-8");
 		JSONObject jsonParam = null;
@@ -316,7 +312,7 @@ public class ModelController {
 					result.put("beans", responseList);
 					log.info("获取流程节点成功" + result.toString());
 				} else {
-					
+
 					throw new MyExceptions("获取流程节点失败！");
 				}
 
@@ -343,146 +339,143 @@ public class ModelController {
 		}
 
 	}
-	
-	
-	
-	
-	    @ApiOperation(value = "挂起任务", notes = "根据流程定义id挂起任务")
-	    @RequestMapping(value = "/procDefId/suspend", method=RequestMethod.POST,produces="application/json;charset=utf-8")
-		public void updateStateSuspend(HttpServletRequest request, HttpServletResponse response) {
-			response.setContentType("application/json;charset=utf-8");
-			JSONObject jsonParam = null;
-			JSONObject result = new JSONObject();
-			result.put("rtnCode", "-1");
-			result.put("rtnMsg", "挂起任务失败!");
-			BufferedReader streamReader = null;
-			try {
-				// 获取输入流
-				streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
-	
-				// 写入数据到Stringbuilder
-				StringBuilder sb = new StringBuilder();
-				String line = null;
-				while ((line = streamReader.readLine()) != null) {
-					sb.append(line);
-				}
-				log.info("参数" + sb);
-				jsonParam = JSONObject.parseObject(sb.toString());
-				InputStream inputStream = null;
-				if (jsonParam != null) {
-					String procDefId = jsonParam.getString("procDefId");
-					if (StringUtils.isBlank(procDefId)) {
-						result.put("rtnMsg", "挂起任务失败,参数procDefId不能为空！");
-						throw new MyExceptions("挂起任务失败,procDefId不能为空！");
-					}
-					String deploymentId = repositoryService.getProcessDefinition(procDefId).getDeploymentId();
-					List<ProcessDefinition> defines = repositoryService.createProcessDefinitionQuery()
-							.deploymentId(deploymentId).list();
-					if (defines.size() > 0) {
-						ProcessDefinition define = defines.get(0);
-						if (define.isSuspended()) {
-							throw new MyExceptions("挂起任务 ：process define is already suspended");
-						}
-					}
-	
-					repositoryService.suspendProcessDefinitionById(procDefId, true, null);
-					result.put("rtnCode", "1");
-					result.put("rtnMsg", "挂起任务成功!");
-					result.put("bean", null);
-					result.put("beans", null);
-	
-				}
-	
-			} catch (Exception e) {
-				e.printStackTrace();
-				log.info("挂起任务失败" + e.getMessage());
-			} finally {
-				try {
-					if (null != streamReader) {
-						streamReader.close();
-					}
-					String result2 = result.toString();
-					PrintWriter p = response.getWriter();
-					p.println(result2);
-					p.flush();
-					p.close();
-				} catch (Exception e) {
-					e.getStackTrace();
-					log.info("挂起任务失败" + e.getMessage());
-				}
-	
+
+	@ApiOperation(value = "挂起任务", notes = "根据流程定义id挂起任务")
+	@RequestMapping(value = "/procDefId/suspend", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+	public void updateStateSuspend(HttpServletRequest request, HttpServletResponse response) {
+		response.setContentType("application/json;charset=utf-8");
+		JSONObject jsonParam = null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "挂起任务失败!");
+		BufferedReader streamReader = null;
+		try {
+			// 获取输入流
+			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+			// 写入数据到Stringbuilder
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = streamReader.readLine()) != null) {
+				sb.append(line);
 			}
-	
+			log.info("参数" + sb);
+			jsonParam = JSONObject.parseObject(sb.toString());
+			InputStream inputStream = null;
+			if (jsonParam != null) {
+				String procDefId = jsonParam.getString("procDefId");
+				if (StringUtils.isBlank(procDefId)) {
+					result.put("rtnMsg", "挂起任务失败,参数procDefId不能为空！");
+					throw new MyExceptions("挂起任务失败,procDefId不能为空！");
+				}
+				String deploymentId = repositoryService.getProcessDefinition(procDefId).getDeploymentId();
+				List<ProcessDefinition> defines = repositoryService.createProcessDefinitionQuery()
+						.deploymentId(deploymentId).list();
+				if (defines.size() > 0) {
+					ProcessDefinition define = defines.get(0);
+					if (define.isSuspended()) {
+						throw new MyExceptions("挂起任务 ：process define is already suspended");
+					}
+				}
+
+				repositoryService.suspendProcessDefinitionById(procDefId, true, null);
+				result.put("rtnCode", "1");
+				result.put("rtnMsg", "挂起任务成功!");
+				result.put("bean", null);
+				result.put("beans", null);
+
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("挂起任务失败" + e.getMessage());
+		} finally {
+			try {
+				if (null != streamReader) {
+					streamReader.close();
+				}
+				String result2 = result.toString();
+				PrintWriter p = response.getWriter();
+				p.println(result2);
+				p.flush();
+				p.close();
+			} catch (Exception e) {
+				e.getStackTrace();
+				log.info("挂起任务失败" + e.getMessage());
+			}
+
 		}
 
-	    @ApiOperation(value = "激活任务", notes = "根据流程定义id激活任务")
-	    @RequestMapping(value = "/procDefId/active", method=RequestMethod.POST,produces="application/json;charset=utf-8")
-		public void updateStateActive(HttpServletRequest request, HttpServletResponse response) {
-			response.setContentType("application/json;charset=utf-8");
-			JSONObject jsonParam = null;
-			JSONObject result = new JSONObject();
-			result.put("rtnCode", "-1");
-			result.put("rtnMsg", "激活任务失败!");
-			BufferedReader streamReader = null;
-			try {
-				// 获取输入流
-				streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
-	
-				// 写入数据到Stringbuilder
-				StringBuilder sb = new StringBuilder();
-				String line = null;
-				while ((line = streamReader.readLine()) != null) {
-					sb.append(line);
-				}
-				log.info("参数" + sb);
-				jsonParam = JSONObject.parseObject(sb.toString());
-	
-				if (jsonParam != null) {
-					String procDefId = jsonParam.getString("procDefId");
-					if (StringUtils.isBlank(procDefId)) {
-						result.put("rtnMsg", "激活任务失败,procDefId不能为空！");
-						throw new MyExceptions("激活任务失败,procDefId不能为空！");
-					}
-					String deploymentId = repositoryService.getProcessDefinition(procDefId).getDeploymentId();
-					List<ProcessDefinition> defines = repositoryService.createProcessDefinitionQuery()
-							.deploymentId(deploymentId).list();
-					if (defines.size() > 0) {
-						ProcessDefinition define = defines.get(0);
-						if (!define.isSuspended()) {
-							throw new MyExceptions("激活任务失败 ：process define is already actived");
-						}
-					}
-	
-					repositoryService.activateProcessDefinitionById(procDefId, true, null);
-	
-					repositoryService.suspendProcessDefinitionById(procDefId, true, null);
-					result.put("rtnCode", "1");
-					result.put("rtnMsg", "激活任务成功!");
-					result.put("bean", null);
-					result.put("beans", null);
-	
-				}
-	
-			} catch (Exception e) {
-				e.printStackTrace();
-				log.info("激活任务失败" + e.getMessage());
-			} finally {
-				try {
-					if (null != streamReader) {
-						streamReader.close();
-					}
-					String result2 = result.toString();
-					PrintWriter p = response.getWriter();
-					p.println(result2);
-					p.flush();
-					p.close();
-				} catch (Exception e) {
-					e.getStackTrace();
-					log.info("激活任务失败" + e.getMessage());
-				}
-	
+	}
+
+	@ApiOperation(value = "激活任务", notes = "根据流程定义id激活任务")
+	@RequestMapping(value = "/procDefId/active", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+	public void updateStateActive(HttpServletRequest request, HttpServletResponse response) {
+		response.setContentType("application/json;charset=utf-8");
+		JSONObject jsonParam = null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "激活任务失败!");
+		BufferedReader streamReader = null;
+		try {
+			// 获取输入流
+			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+			// 写入数据到Stringbuilder
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = streamReader.readLine()) != null) {
+				sb.append(line);
 			}
-	
+			log.info("参数" + sb);
+			jsonParam = JSONObject.parseObject(sb.toString());
+
+			if (jsonParam != null) {
+				String procDefId = jsonParam.getString("procDefId");
+				if (StringUtils.isBlank(procDefId)) {
+					result.put("rtnMsg", "激活任务失败,procDefId不能为空！");
+					throw new MyExceptions("激活任务失败,procDefId不能为空！");
+				}
+				String deploymentId = repositoryService.getProcessDefinition(procDefId).getDeploymentId();
+				List<ProcessDefinition> defines = repositoryService.createProcessDefinitionQuery()
+						.deploymentId(deploymentId).list();
+				if (defines.size() > 0) {
+					ProcessDefinition define = defines.get(0);
+					if (!define.isSuspended()) {
+						throw new MyExceptions("激活任务失败 ：process define is already actived");
+					}
+				}
+
+				repositoryService.activateProcessDefinitionById(procDefId, true, null);
+
+				repositoryService.suspendProcessDefinitionById(procDefId, true, null);
+				result.put("rtnCode", "1");
+				result.put("rtnMsg", "激活任务成功!");
+				result.put("bean", null);
+				result.put("beans", null);
+
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("激活任务失败" + e.getMessage());
+		} finally {
+			try {
+				if (null != streamReader) {
+					streamReader.close();
+				}
+				String result2 = result.toString();
+				PrintWriter p = response.getWriter();
+				p.println(result2);
+				p.flush();
+				p.close();
+			} catch (Exception e) {
+				e.getStackTrace();
+				log.info("激活任务失败" + e.getMessage());
+			}
+
 		}
-	
+
+	}
+
 }
