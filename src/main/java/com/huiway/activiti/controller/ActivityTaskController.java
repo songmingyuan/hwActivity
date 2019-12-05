@@ -5,10 +5,13 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -16,7 +19,10 @@ import javax.servlet.http.HttpServletResponse;
 import org.activiti.bpmn.model.BpmnModel;
 import org.activiti.bpmn.model.FlowElement;
 import org.activiti.bpmn.model.FlowNode;
+import org.activiti.bpmn.model.MultiInstanceLoopCharacteristics;
 import org.activiti.bpmn.model.SequenceFlow;
+import org.activiti.bpmn.model.SubProcess;
+import org.activiti.bpmn.model.UserTask;
 import org.activiti.engine.HistoryService;
 import org.activiti.engine.IdentityService;
 import org.activiti.engine.ProcessEngine;
@@ -32,6 +38,7 @@ import org.activiti.engine.impl.identity.Authentication;
 import org.activiti.engine.impl.persistence.entity.ProcessDefinitionEntity;
 import org.activiti.engine.runtime.Execution;
 import org.activiti.engine.runtime.ProcessInstance;
+import org.activiti.engine.task.Comment;
 import org.activiti.engine.task.Task;
 import org.activiti.image.ProcessDiagramGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -63,6 +70,7 @@ import lombok.extern.slf4j.Slf4j;
 @RequestMapping("/activiti/task")
 public class ActivityTaskController {
 	private String strEXCLUSIVE_GATEWAY_RESULT = "RESULT";  // RESULT
+	private String strPARALLEL_GATEWAY_RESULT="PARALLEL_RESULT";
 	@Autowired
 	private RuntimeService runtimeService;
 	@Autowired
@@ -832,11 +840,9 @@ public class ActivityTaskController {
 		}
 
 	}
-	
-	
-    @ApiOperation(value = "只撤回到上一步流程节点", notes = "只撤回到上一步流程节点")
-    @RequestMapping(value = "/revocation/up", method=RequestMethod.POST,produces="application/json;charset=utf-8")
-	public void revocationUp(HttpServletRequest request, HttpServletResponse response) {
+	@ApiOperation(value = "只撤回到上一步流程节点", notes = "只撤回到上一步流程节点")
+    @RequestMapping(value = "/revocation/task", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+	public void revocationUp2(HttpServletRequest request, HttpServletResponse response) {
 		response.setContentType("application/json;charset=utf-8");
 		JSONObject jsonParam = null;
 		JSONObject result = new JSONObject();
@@ -869,30 +875,38 @@ public class ActivityTaskController {
 					throw new MyExceptions("只撤回到上一步流程节点失败,userId不能为空！");
 				}
 				TaskService taskService = processEngine.getTaskService();
-
+				
+				
 				Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
 
 				if (task == null) {
 					throw new ValidationError("流程未启动或已执行完成，无法撤回");
 				}
+				String assigneePerson=task.getAssignee();
+				if(StringUtils.isEmpty(assigneePerson)){
+					taskService.setAssignee(taskId, userId);
+				}
+				
+				
+				
                 String procInstId=task.getProcessInstanceId();
 				HistoryService historyService = processEngine.getHistoryService();
 				RepositoryService repositoryService = processEngine.getRepositoryService();
 				List<HistoricTaskInstance> htiList = historyService.createHistoricTaskInstanceQuery()
-						.processInstanceId(procInstId).orderByTaskCreateTime().desc().list();
+						.processInstanceId(procInstId).orderByTaskCreateTime().finished().desc().list();
 				String myTaskId = null;
 				HistoricTaskInstance myTask = null;
 
-				if (htiList.size() >= 2) {
-					HistoricTaskInstance hti = htiList.get(1);
-					if (userId.equals(hti.getAssignee())) {
+				if (htiList.size() >= 1) {
+					HistoricTaskInstance hti = htiList.get(0);
+					//if (userId.equals(hti.getAssignee())) {
 						myTaskId = hti.getId();
 						myTask = hti;
-					}
+					//}
 				}
 
 				if (null == myTaskId) {
-					throw new ValidationError("该任务非当前用户提交，无法撤回");
+					throw new ValidationError("找不到节点，无法撤回");
 				}
 
 				String processDefinitionId = myTask.getProcessDefinitionId();
@@ -947,7 +961,220 @@ public class ActivityTaskController {
 				// currentVariables.put("applier", userId);
 				// 完成任务
 				// taskService.complete(task.getId(), currentVariables);
-				taskService.complete(task.getId(), ImmutableMap.of(assigneeKey, userId));
+				
+				Map<String, Object> resultMap = getNodeType(processDefinitionId, task.getTaskDefinitionKey());
+				if (resultMap != null) {
+					String nodeType = resultMap.get("nodeType") == null ? ""
+							: resultMap.get("nodeType").toString();
+					if("2".equals(nodeType)){
+						List<Task> tasksList=taskService.createTaskQuery().processInstanceId(procInstId).list();
+						for(Task tasks :tasksList ){
+							if(taskId.equals(tasks.getId())){
+								// 完成任务
+								taskService.complete(tasks.getId(), ImmutableMap.of(assigneeKey, userId));
+							}else{
+								taskService.setAssignee(tasks.getId(), userId);
+								taskService.addComment(tasks.getId(), tasks.getProcessInstanceId(), "任务撤回");
+								taskService.complete(tasks.getId(), ImmutableMap.of(assigneeKey, userId));
+							}
+							
+						}
+						
+					}else{
+						
+						// 完成任务
+						taskService.complete(task.getId(), ImmutableMap.of(assigneeKey, userId));
+					}
+
+				}
+				
+				
+				//taskService.complete(task.getId(), ImmutableMap.of(assigneeKey, userId));
+				// 恢复原方向
+				flowNode.setOutgoingFlows(oriSequenceFlows);
+
+				Task newCurrentTask = taskService.createTaskQuery().processInstanceId(procInstId).singleResult();
+				taskService.setAssignee(newCurrentTask.getId(), assignee);
+
+				Map<String, Object> paramMap = new HashMap<>();
+				paramMap.put("PROC_INST_ID_", procInstId);
+				List<BpmActRuTask> bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService.listByMap(paramMap);
+
+
+				result.put("rtnCode", "1");
+
+				result.put("rtnMsg", "任务完成成功!");
+				result.put("rtnCode", "1");
+				result.put("bean", null);
+				result.put("beans", bpmActRuTaskList);
+				log.info("任务完成成功" + result.toString());
+
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("只撤回到上一步流程节点失败" + e.getMessage());
+		} finally {
+			try {
+				if (null != streamReader) {
+					streamReader.close();
+				}
+				String result2 = result.toString();
+				PrintWriter p = response.getWriter();
+				p.println(result2);
+				p.flush();
+				p.close();
+			} catch (Exception e) {
+				e.getStackTrace();
+				log.info("只撤回到上一步流程节点失败" + e.getMessage());
+			}
+
+		}
+
+	}
+	
+	
+    @ApiOperation(value = "只撤回到上一步流程节点", notes = "只撤回到上一步流程节点")
+    @RequestMapping(value = "/revocation/up", method=RequestMethod.POST,produces="application/json;charset=utf-8")
+	public void revocationUp(HttpServletRequest request, HttpServletResponse response) {
+		response.setContentType("application/json;charset=utf-8");
+		JSONObject jsonParam = null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "只撤回到上一步流程节点任务失败!");
+		result.put("procDefId", null);
+		BufferedReader streamReader = null;
+		try {
+			// 获取输入流
+			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+			// 写入数据到Stringbuilder
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = streamReader.readLine()) != null) {
+				sb.append(line);
+			}
+			log.info("参数" + sb);
+			jsonParam = JSONObject.parseObject(sb.toString());
+			InputStream inputStream = null;
+			if (jsonParam != null) {
+				String taskId = jsonParam.getString("taskId");
+				if (StringUtils.isBlank(taskId)) {
+					result.put("rtnMsg", "只撤回到上一步流程节点任务失败,taskId不能为空！");
+					throw new MyExceptions("只撤回到上一步流程节点任务失败,taskId不能为空！");
+				}
+				String assigneeKey = jsonParam.getString("assigneeKey");
+				String userId = jsonParam.getString("userId");
+				if (StringUtils.isBlank(userId)) {
+					throw new MyExceptions("只撤回到上一步流程节点失败,userId不能为空！");
+				}
+				TaskService taskService = processEngine.getTaskService();
+
+				Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+
+				if (task == null) {
+					throw new ValidationError("流程未启动或已执行完成，无法撤回");
+				}
+                String procInstId=task.getProcessInstanceId();
+				HistoryService historyService = processEngine.getHistoryService();
+				RepositoryService repositoryService = processEngine.getRepositoryService();
+				List<HistoricTaskInstance> htiList = historyService.createHistoricTaskInstanceQuery()
+						.processInstanceId(procInstId).orderByTaskCreateTime().finished().desc().list();
+				String myTaskId = null;
+				HistoricTaskInstance myTask = null;
+
+				if (htiList.size() >= 1) {
+					HistoricTaskInstance hti = htiList.get(0);
+					//if (userId.equals(hti.getAssignee())) {
+						myTaskId = hti.getId();
+						myTask = hti;
+					//}
+				}
+
+				if (null == myTaskId) {
+					throw new ValidationError("找不到节点，无法撤回");
+				}
+
+				String processDefinitionId = myTask.getProcessDefinitionId();
+				ProcessDefinitionEntity processDefinitionEntity = (ProcessDefinitionEntity) repositoryService
+						.createProcessDefinitionQuery().processDefinitionId(processDefinitionId).singleResult();
+				BpmnModel bpmnModel = repositoryService.getBpmnModel(processDefinitionId);
+
+				// 变量
+				// Map<String, VariableInstance> variables =
+				// runtimeService.getVariableInstances(currentTask.getExecutionId());
+				String myActivityId = null;
+				String assignee="";
+				List<HistoricActivityInstance> haiList = historyService.createHistoricActivityInstanceQuery()
+						.executionId(myTask.getExecutionId()).finished().list();
+				for (HistoricActivityInstance hai : haiList) {
+					if (myTaskId.equals(hai.getTaskId())) {
+						myActivityId = hai.getActivityId();
+						assignee=hai.getAssignee();
+						break;
+					}
+				}
+				FlowNode myFlowNode = (FlowNode) bpmnModel.getMainProcess().getFlowElement(myActivityId);
+
+				RuntimeService runtimeService = processEngine.getRuntimeService();
+
+				Execution execution = runtimeService.createExecutionQuery().executionId(task.getExecutionId())
+						.singleResult();
+				String activityId = execution.getActivityId();
+				System.out.println("revocation------->> activityId:" + activityId);
+				FlowNode flowNode = (FlowNode) bpmnModel.getMainProcess().getFlowElement(activityId);
+
+				// 记录原活动方向
+				List<SequenceFlow> oriSequenceFlows = new ArrayList<SequenceFlow>();
+				oriSequenceFlows.addAll(flowNode.getOutgoingFlows());
+
+				// 清理活动方向
+				flowNode.getOutgoingFlows().clear();
+				// 建立新方向
+				List<SequenceFlow> newSequenceFlowList = new ArrayList<SequenceFlow>();
+				SequenceFlow newSequenceFlow = new SequenceFlow();
+				newSequenceFlow.setId("newSequenceFlowId");
+				newSequenceFlow.setSourceFlowElement(flowNode);
+				newSequenceFlow.setTargetFlowElement(myFlowNode);
+				newSequenceFlowList.add(newSequenceFlow);
+				flowNode.setOutgoingFlows(newSequenceFlowList);
+
+				Authentication.setAuthenticatedUserId(userId);
+				taskService.addComment(task.getId(), task.getProcessInstanceId(), "撤回");
+				//
+				// Map<String, Object> currentVariables = new HashMap<String,
+				// Object>();
+				// currentVariables.put("applier", userId);
+				// 完成任务
+				// taskService.complete(task.getId(), currentVariables);
+				
+				Map<String, Object> resultMap = getNodeType(processDefinitionId, task.getTaskDefinitionKey());
+				if (resultMap != null) {
+					String nodeType = resultMap.get("nodeType") == null ? ""
+							: resultMap.get("nodeType").toString();
+					if("2".equals(nodeType)){
+						List<Task> tasksList=taskService.createTaskQuery().processInstanceId(procInstId).list();
+						for(Task tasks :tasksList ){
+							if(taskId.equals(tasks.getId())){
+								// 完成任务
+								taskService.complete(tasks.getId(), ImmutableMap.of(assigneeKey, userId));
+							}else{
+								taskService.setAssignee(tasks.getId(), userId);
+								taskService.addComment(tasks.getId(), tasks.getProcessInstanceId(), "任务撤回");
+								taskService.complete(tasks.getId(), ImmutableMap.of(assigneeKey, userId));
+							}
+							
+						}
+						
+					}else{
+						
+						// 完成任务
+						taskService.complete(task.getId(), ImmutableMap.of(assigneeKey, userId));
+					}
+
+				}
+				
+				
+				//taskService.complete(task.getId(), ImmutableMap.of(assigneeKey, userId));
 				// 恢复原方向
 				flowNode.setOutgoingFlows(oriSequenceFlows);
 
@@ -1037,6 +1264,7 @@ public class ActivityTaskController {
 					throw new MyExceptions("流程未启动或已执行完成，无法撤回");
 				}
 				String processInstanceId=task.getProcessInstanceId();
+				
 				RepositoryService repositoryService = processEngine.getRepositoryService();
 				List<HistoricTaskInstance> htiList = historyService.createHistoricTaskInstanceQuery()
 						.processInstanceId(processInstanceId).orderByTaskCreateTime().desc().list();
@@ -1101,8 +1329,33 @@ public class ActivityTaskController {
 				// Object>();
 				// currentVariables.put("applier", userId);
 
-				// 完成任务
-				taskService.complete(task.getId(), ImmutableMap.of(assigneeKey, userId));
+				Map<String, Object> resultMap = getNodeType(processDefinitionId, task.getTaskDefinitionKey());
+				if (resultMap != null) {
+					String nodeType = resultMap.get("nodeType") == null ? ""
+							: resultMap.get("nodeType").toString();
+					if("2".equals(nodeType)){
+						List<Task> tasksList=taskService.createTaskQuery().processInstanceId(processInstanceId).list();
+						for(Task tasks :tasksList ){
+							if(taskId.equals(tasks.getId())){
+								// 完成任务
+								taskService.complete(tasks.getId(), ImmutableMap.of(assigneeKey, userId));
+							}else{
+								taskService.setAssignee(tasks.getId(), userId);
+								taskService.addComment(tasks.getId(), tasks.getProcessInstanceId(), "任务撤回");
+								taskService.complete(tasks.getId(), ImmutableMap.of(assigneeKey, userId));
+							}
+							
+						}
+						
+					}else{
+						
+						// 完成任务
+						taskService.complete(task.getId(), ImmutableMap.of(assigneeKey, userId));
+					}
+
+				}
+				
+				
 				// 恢复原方向
 				flowNode.setOutgoingFlows(oriSequenceFlows);
 
@@ -1323,7 +1576,293 @@ public class ActivityTaskController {
 
 		}
 	}
+    
+	/**
+	 * 节点类型  1-任务 2-会签任务
+	 * @param procDefId
+	 * @param activityId
+	 * @return
+	 */
+	private Map<String,Object> getNodeType(String procDefId,String activityId){
+		BpmnModel model = repositoryService.getBpmnModel(procDefId);
+		Map<String, Object> result = new HashMap<>();
+		if (model != null) {
+			Collection<FlowElement> flowElements = model.getMainProcess().getFlowElements();
+			for (FlowElement e : flowElements) {
+				
+				if (e instanceof UserTask) {
+					UserTask userTask = (UserTask) e;
+					if(e.getId().equals(activityId)){
+						MultiInstanceLoopCharacteristics ll = userTask.getLoopCharacteristics();
+						if (ll != null) {
+							result.put("nodeType", "2");
+							break;
+						}else{
+							result.put("nodeType", "1");
+							break;
+						}
+					}
+					
+				}else if (e instanceof SubProcess) {
+					SubProcess sp = (SubProcess) e;
+					if (sp != null) {
+						List<FlowElement> flowElementList = (List<FlowElement>) sp.getFlowElements();
+						for (FlowElement ee : flowElementList) {
+							Map<String, Object> maps = new HashMap<>();
+							if (ee instanceof UserTask) {
+								UserTask userTask = (UserTask) ee;
+								
+								if(ee.getId().equals(activityId)){
+									MultiInstanceLoopCharacteristics ll = userTask.getLoopCharacteristics();
+									if (ll != null) {
+										result.put("nodeType", "2");
+										break;
+									}else{
+										result.put("nodeType", "1");
+										break;
+									}
+								}
+								
+							}
+							
+							
+						}
+						
+					}
+					
+				}
+				
+				
+			}
+			
+		}
+		return result;
+		
+	}
+	@ApiOperation(value = "是否会签任务", notes = "根据流程实例id获取任务")
+	@RequestMapping(value = "/get/task", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+	public void getTaskInfo(HttpServletRequest request, HttpServletResponse response) {
 
+		JSONObject jsonParam = null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "获取是否会签任务失败!");
+		BufferedReader streamReader = null;
+		response.setContentType("application/json;charset=utf-8");
+		try {
+			// 获取输入流
+			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+			// 写入数据到Stringbuilder
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = streamReader.readLine()) != null) {
+				sb.append(line);
+			}
+			log.info("参数" + sb);
+			jsonParam = JSONObject.parseObject(sb.toString());
+			List<Map<String, String>> list = new ArrayList<>();
+			if (jsonParam != null) {
+				String taskId = jsonParam.getString("taskId");
+				if (StringUtils.isBlank(taskId)) {
+					result.put("rtnMsg", "获取是否会签任务失败,参数taskId不能为空！");
+					throw new MyExceptions("获取是否会签任务失败,taskId不能为空！");
+				}
+
+				Task task = taskService.createTaskQuery().taskId(taskId).singleResult();
+				boolean isJoinTsk=false;
+				Map<String, Object> rtnMap = new HashMap<>();
+				
+				if (task != null) {
+					String processDefinitionId = task.getProcessDefinitionId();
+					Map<String, Object> resultMap = getNodeType(processDefinitionId, task.getTaskDefinitionKey());
+					if (resultMap != null) {
+						String nodeType = resultMap.get("nodeType") == null ? "" : resultMap.get("nodeType").toString();
+						if ("2".equals(nodeType)) {
+							isJoinTsk = true;
+						}
+					}
+				}
+				rtnMap.put("isLastJoinTask", isJoinTsk);
+				result.put("rtnCode", "1");
+				result.put("rtnMsg", "获取任务明细成功!");
+				result.put("bean", null);
+				result.put("rtnMap", rtnMap);
+				result.put("beans", null);
+				log.info("获取任务明细成功" + result.toString());
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("获取任务明细失败" + e.getMessage());
+		} finally {
+			try {
+				if (null != streamReader) {
+					streamReader.close();
+				}
+				String result2 = result.toString();
+				PrintWriter p = response.getWriter();
+				p.println(result2);
+				p.flush();
+				p.close();
+			} catch (Exception e) {
+				e.getStackTrace();
+				log.info("获取任务明细失败" + e.getMessage());
+			}
+
+		}
+
+	}
+    @ApiOperation(value = "根据任务id获取可以驳回的节点", notes = "根据任务id获取可以驳回的节点")
+	@RequestMapping(value = "/reject/node", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+	public void getActivityRejectNode(HttpServletRequest request, HttpServletResponse response) {
+		JSONObject jsonParam = null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "获取信息失败!");
+		result.put("procDefId", null);
+		BufferedReader streamReader = null;
+		response.setContentType("application/json;charset=utf-8");
+		try {
+			// 获取输入流
+			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+			// 写入数据到Stringbuilder
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = streamReader.readLine()) != null) {
+				sb.append(line);
+			}
+			log.info("参数" + sb);
+			jsonParam = JSONObject.parseObject(sb.toString());
+			List<Map<String,Object>> nodeList=new ArrayList<>();
+			List<Map<String,Object>> retuenList=new ArrayList<>();
+			Set<String> set=new HashSet<>();
+			Set<String> setString=new HashSet<>();
+			List<TaskGatewayDTO> gateWays = new ArrayList<TaskGatewayDTO>();
+			if (jsonParam != null) {
+				String taskId = jsonParam.getString("taskId");
+				if (StringUtils.isBlank(taskId)) {
+					throw new MyExceptions("获取信息失败,taskId不能为空！");
+				}
+				Task task = taskService.createTaskQuery().taskId(taskId) // 根据任务id查询
+						.singleResult();
+				if (task != null) {
+					String processInstanceId = task.getProcessInstanceId();
+					String definitionId=task.getProcessDefinitionId();
+					List<HistoricTaskInstance> list = processEngine.getHistoryService() // 历史相关Service
+							.createHistoricTaskInstanceQuery() // 创建历史任务实例查询
+							.processInstanceId(processInstanceId).finished()
+							// 用流程实例id查询
+							.orderByHistoricTaskInstanceEndTime().desc().list();
+
+					for(HistoricTaskInstance hti:list){
+						set.add(hti.getTaskDefinitionKey());
+						Map<String,Object> resultMap=new HashMap<>();
+						resultMap.put(hti.getTaskDefinitionKey(), hti.getName());
+						Map<String,Object> resMap=new HashMap<>();
+						resMap.put(hti.getTaskDefinitionKey(), resultMap);
+						nodeList.add(resMap);
+						
+					}
+					BpmnModel model = processEngine.getRepositoryService().getBpmnModel(definitionId);
+					for (String str : set) {
+						
+//						Map<String, Object> resultMap = getNodeType(definitionId, str);
+//						if (resultMap != null) {
+//							String nodeType = resultMap.get("nodeType") == null ? ""
+//									: resultMap.get("nodeType").toString();
+//							if("2".equals(nodeType)){
+//								continue;
+//							}
+//
+//						}else{
+//							continue;
+//						}
+						FlowElement activeEl = model.getMainProcess().getFlowElement(str);
+						if (activeEl instanceof org.activiti.bpmn.model.UserTask) {
+
+							List<SequenceFlow> sequenceFlowList = ((org.activiti.bpmn.model.UserTask) activeEl)
+								.getIncomingFlows();
+							for (SequenceFlow sequenceFlow : sequenceFlowList) {
+								FlowElement flowElement =sequenceFlow.getSourceFlowElement();
+								gateWays = getTaskGateWayDepth2(flowElement, 0);
+//								if(flowElement instanceof UserTask){
+//									UserTask userTask = (UserTask) flowElement;
+//									 resultMap = getNodeType(definitionId, userTask.getId());
+//									if (resultMap != null) {
+//										String nodeType = resultMap.get("nodeType") == null ? ""
+//												: resultMap.get("nodeType").toString();
+//										if("1".equals(nodeType)){
+//											setString.add(str);
+//										}
+//
+//									}
+//									
+//								}
+								
+								
+							if(gateWays.isEmpty()){
+								setString.add(str);
+							}
+								
+								
+								
+							}
+						}
+
+					}
+					
+					
+					
+					
+					for (String str : setString) {
+						
+						for(Map<String,Object> map:nodeList){
+							if(map.containsKey(str)){
+								Map<String,Object> m= (Map<String, Object>) map.get(str);
+								if(m!=null){
+									retuenList.add(m);
+									break;
+								}
+							}
+							
+						}
+						
+						
+					}
+					
+					
+					
+					result.put("rtnCode", "1");
+					result.put("rtnMsg", "获取信息任务成功");
+					result.put("bean", null);
+					result.put("beans", retuenList);
+					log.info("获取信息成功" + result.toString());
+				}
+
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("获取信息任务失败" + e.getMessage());
+		} finally {
+			try {
+				if (null != streamReader) {
+					streamReader.close();
+				}
+				String result2 = result.toString();
+				PrintWriter p = response.getWriter();
+				p.println(result2);
+				p.flush();
+				p.close();
+			} catch (Exception e) {
+				e.getStackTrace();
+				log.info("获取信息任务失败" + e.getMessage());
+			}
+
+		}
+	}
     
     /**
      * 获任务网关信息
@@ -1412,7 +1951,61 @@ public class ActivityTaskController {
 		}
 
 	}
+	/**
+	 * 递归取网管出口信息2
+	 * 
+	 * @param targetEl
+	 * @param depth
+	 * @return
+	 */
+	private List<TaskGatewayDTO> getTaskGateWayDepth2(FlowElement targetEl, int depth) {
+		List<TaskGatewayDTO> gateWays = new ArrayList<TaskGatewayDTO>();
+		depth++;
+		if (depth > 2) {
+			return null;
+		}
 
+		List<SequenceFlow> sequenceFlowList;
+		if (targetEl instanceof org.activiti.bpmn.model.ExclusiveGateway
+				|| targetEl instanceof org.activiti.bpmn.model.ParallelGateway) {
+			sequenceFlowList = ((org.activiti.bpmn.model.Gateway) targetEl).getOutgoingFlows();// 流出信息
+			for (SequenceFlow flow : sequenceFlowList) {
+				String name = flow.getName();
+				System.out.println("name=" + name);
+				String condition = flow.getConditionExpression();
+				TaskGatewayDTO gateWay = new TaskGatewayDTO();
+				if (targetEl instanceof org.activiti.bpmn.model.ExclusiveGateway) {
+					if (condition != null) {
+						condition = condition.replace(" ", "").replace("{", "").replace("}", "").replace("$", "")
+								.replace("\"", "").replace(strEXCLUSIVE_GATEWAY_RESULT, "").replace("=", "");
+						gateWay.setName(name);
+						gateWay.setCondition(condition);
+						gateWays.add(gateWay);
+					}
+				}else if(targetEl instanceof org.activiti.bpmn.model.ParallelGateway){
+					if(!StringUtils.isEmpty(condition)){
+						
+						condition = condition.replace(" ", "").replace("{", "").replace("}", "").replace("$", "")
+								.replace("\"", "").replace(strPARALLEL_GATEWAY_RESULT, "").replace("=", "");
+					}
+					gateWay.setName(name);
+					gateWay.setCondition(condition);
+					gateWays.add(gateWay);
+				}else {
+					if (condition != null && name != null) {
+						gateWay.setName(name);
+						condition = condition.replace("${", "").replace("}", "");
+						gateWay.setCondition(condition);
+						gateWay.setMutiSelectFlag(true);
+						gateWays.add(gateWay);
+					}
+				}
+				FlowElement targetElSub = flow.getTargetFlowElement();
+				gateWay.setItems(getTaskGateWayDepth2(targetElSub, depth));
+			} // ExclusiveGateway
+		}
+		return gateWays;
+	}
 	/**
 	 * 递归取网管出口信息
 	 * 
@@ -1444,7 +2037,7 @@ public class ActivityTaskController {
 						gateWay.setCondition(condition);
 						gateWays.add(gateWay);
 					}
-				} else {
+				}else {
 					if (condition != null && name != null) {
 						gateWay.setName(name);
 						condition = condition.replace("${", "").replace("}", "");
@@ -1659,8 +2252,81 @@ public class ActivityTaskController {
 
 		}
 	}
-    
-    
+ 
+	@ApiOperation(value = "获取批注内容", notes = "根据流程实例id获取批注内容")
+	@RequestMapping(value = "/ru/comment", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+	public void getProcessComments(HttpServletRequest request, HttpServletResponse response) {
+		JSONObject jsonParam = null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "获取历史任务失败!");
+		result.put("procDefId", null);
+		BufferedReader streamReader = null;
+		response.setContentType("application/json;charset=utf-8");
+		try {
+			// 获取输入流
+			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+			// 写入数据到Stringbuilder
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = streamReader.readLine()) != null) {
+				sb.append(line);
+			}
+			log.info("参数" + sb);
+			jsonParam = JSONObject.parseObject(sb.toString());
+			if (jsonParam != null) {
+
+				String procInstId = jsonParam.getString("procInstId");
+				if (StringUtils.isBlank(procInstId)) {
+					result.put("rtnMsg", "获取历史任务失败,procInstId不能为空！");
+					throw new MyExceptions("获取历史任务失败,procInstId不能为空！");
+				}
+				List<Comment> historyCommnets = new ArrayList<>();
+				ProcessInstance pi = runtimeService.createProcessInstanceQuery().processInstanceId(procInstId)
+						.singleResult();
+				// 2）通过流程实例查询所有的(用户任务类型)历史活动
+				List<HistoricActivityInstance> hais = historyService.createHistoricActivityInstanceQuery()
+						.processInstanceId(pi.getId()).activityType("userTask").list();
+				// 3）查询每个历史任务的批注
+				for (HistoricActivityInstance hai : hais) {
+					String historytaskId = hai.getTaskId();
+					List<Comment> comments = taskService.getTaskComments(historytaskId);
+					// 4）如果当前任务有批注信息，添加到集合中
+					if (comments != null && comments.size() > 0) {
+						historyCommnets.addAll(comments);
+					}
+				}
+				// 5）返回
+
+				result.put("rtnCode", "1");
+				result.put("rtnMsg", "获取历史任务成功!");
+				result.put("bean", null);
+				result.put("beans", historyCommnets);
+				log.info("获取历史任务成功" + result.toString());
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("获取历史任务失败" + e.getMessage());
+		} finally {
+			try {
+				if (null != streamReader) {
+					streamReader.close();
+				}
+				String result2 = result.toString();
+				PrintWriter p = response.getWriter();
+				p.println(result2);
+				p.flush();
+				p.close();
+			} catch (Exception e) {
+				e.getStackTrace();
+				log.info("获取历史任务失败" + e.getMessage());
+			}
+
+		}
+	}
+
     @ApiOperation(value = "获取历史任务", notes = "根据流程实例id获取历史任务")
     @RequestMapping(value = "/ru/tasks", method=RequestMethod.POST,produces="application/json;charset=utf-8")
 	public void getRuTask(HttpServletRequest request, HttpServletResponse response) {

@@ -6,8 +6,10 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -311,7 +313,7 @@ public class TodoTaskController {
 
 	}
 
-	@ApiOperation(value = "是否是会签的最后一个任务", notes = "根据流程实例id获取待办任务")
+	@ApiOperation(value = "是否是会签的最后一个任务", notes = "根据流程实例id获取任务")
 	@RequestMapping(value = "/get/isLastTask", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
 	public void isLastTaskList(HttpServletRequest request, HttpServletResponse response) {
 		JSONObject jsonParam = null;
@@ -434,7 +436,12 @@ public class TodoTaskController {
 					result.put("rtnMsg", "获取组待办任务失败,参数userId不能为空！");
 					throw new MyExceptions("获取组待办任务失败,userId不能为空！");
 				}
-				List<Task> tasks = taskService.createTaskQuery().taskCandidateUser(userId).orderByTaskCreateTime()
+				String procDefId = jsonParam.getString("procDefId");
+				if (StringUtils.isBlank(procDefId)) {
+					result.put("rtnMsg", "获取组待办任务失败,参数procDefId不能为空！");
+					throw new MyExceptions("获取组待办任务失败,procDefId不能为空！");
+				}
+				List<Task> tasks = taskService.createTaskQuery().processDefinitionId(procDefId).taskCandidateUser(userId).orderByTaskCreateTime()
 						.desc().list();
 				List<BpmActRuTask> ruList = new ArrayList<>();
 				if (!tasks.isEmpty()) {
@@ -479,6 +486,11 @@ public class TodoTaskController {
 
 	}
 
+	
+	
+	
+	
+	
 	@ApiOperation(value = "获取任务明细", notes = "根据流程实例id获取任务明细")
 	@RequestMapping(value = "/get/task/info", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
 	public void getTaskInfo(HttpServletRequest request, HttpServletResponse response) {
@@ -646,6 +658,255 @@ public class TodoTaskController {
 		}
 
 	}
+	@ApiOperation(value = "完成任务", notes = "完成任务")
+	@RequestMapping(value = "/complete/all", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+	public void completeTaskAll(HttpServletRequest request, HttpServletResponse response) {
+		JSONObject jsonParam = null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "完成任务失败!");
+		BufferedReader streamReader = null;
+		response.setContentType("application/json;charset=utf-8");
+		try {
+			// 获取输入流
+			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+			// 写入数据到Stringbuilder
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = streamReader.readLine()) != null) {
+				sb.append(line);
+			}
+			log.info("参数" + sb);
+			jsonParam = JSONObject.parseObject(sb.toString());
+			if (jsonParam != null) {
+				Map<String, Object> params = JSONObject.parseObject(jsonParam.toJSONString(),
+						new TypeReference<Map<String, Object>>() {
+						});
+				String assignee = jsonParam.getString("assignee");
+				String assigneeKey = jsonParam.getString("assigneeKey");
+				String taskId = jsonParam.getString("taskId");
+				if (StringUtils.isBlank(taskId)) {
+					result.put("rtnMsg", "完成任务失败,参数taskId不能为空！");
+					throw new MyExceptions("完成任务失败,taskId不能为空！");
+				}
+				String userId = jsonParam.getString("userId");
+				if (StringUtils.isBlank(userId)) {
+
+					result.put("rtnMsg", "完成任务失败,参数userId不能为空！");
+					throw new MyExceptions("完成任务失败,userId不能为空！");
+				}
+
+				ActivitiDto dto = new ActivitiDto();
+				List<BpmActRuTask> bpmActRuTaskList = new ArrayList<BpmActRuTask>();
+				Task task = taskService.createTaskQuery().taskId(taskId) // 根据任务id查询
+						.singleResult();
+				if (task != null) {
+					String processInstanceId = task.getProcessInstanceId();
+					String processDefinitionId = task.getProcessDefinitionId();
+
+					
+
+					boolean modelSuspended = repositoryService.createProcessDefinitionQuery()
+							.processDefinitionId(processDefinitionId).singleResult().isSuspended();
+					if (modelSuspended) {
+						throw new ValidationError("已挂起This activity model has already be suspended.");
+					}
+
+					boolean instSuspended = runtimeService.createProcessInstanceQuery()
+							.processInstanceId(processInstanceId).singleResult().isSuspended();
+					if (instSuspended) {
+						throw new ValidationError("已挂起This activity instance has already be suspended.");
+					}
+					String person=task.getAssignee();
+					if(StringUtils.isEmpty(person)){
+						taskService.setAssignee(taskId, userId);
+					}else{
+						if (!userId.equals(task.getAssignee())) {
+							result.put("rtnMsg", "完成任务失败,该任务已不在您名下！");
+							throw new MyExceptions("完成任务失败,该任务已不在您名下！");
+						}
+					}
+					
+					
+					taskService.complete(taskId, params);
+					if (!StringUtils.isEmpty(assigneeKey)) {
+						boolean flag = false;
+						List<HistoricVariableInstance> list = processEngine.getHistoryService()
+								.createHistoricVariableInstanceQuery().processInstanceId(processInstanceId)
+								.orderByProcessInstanceId().asc().list();
+						if (!list.isEmpty()) {
+							for (HistoricVariableInstance hti : list) {
+								String name = hti.getVariableName();
+								if (assigneeKey.equals(name)) {
+
+									List<HistoricProcessInstance> list2 = processEngine.getHistoryService()
+											.createHistoricProcessInstanceQuery().processInstanceId(processInstanceId)
+											.list();
+									if (!list2.isEmpty()) {
+										for (HistoricProcessInstance hi : list2) {
+											assignee = hi.getStartUserId();
+											flag = true;
+											break;
+
+										}
+									}
+								}
+								if (flag) {
+									break;
+								}
+							}
+						}
+
+					}
+
+					Map<String, Object> paramMap = new HashMap<>();
+					paramMap.put("PROC_INST_ID_", processInstanceId);
+					bpmActRuTaskList = (List<BpmActRuTask>) bpmActivityService.listByMap(paramMap);
+					if (!bpmActRuTaskList.isEmpty()) {
+						for (BpmActRuTask bp : bpmActRuTaskList) {
+							if (!StringUtils.isEmpty(assigneeKey) && !StringUtils.isEmpty(bp.getAssignee())) {
+								if (bp.getAssignee().equals(assigneeKey)) {
+									taskService.setAssignee(bp.getId(), assignee);
+								}
+
+							}
+						}
+					}
+
+					dto.setProcDefId(processDefinitionId);
+					dto.setProcInstId(processInstanceId);
+					result.put("rtnCode", "1");
+					result.put("rtnMsg", "完成任务成功!");
+					result.put("bean", dto);
+					result.put("beans", bpmActRuTaskList);
+					log.info("完成任务成功" + result.toString());
+				} else {
+
+					result.put("rtnCode", "-1");
+					result.put("rtnMsg", "完成任务失败，找不到任务!");
+					throw new MyExceptions("完成任务失败，找不到任务!");
+				}
+
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("完成任务失败" + e.getMessage());
+		} finally {
+			try {
+				if (null != streamReader) {
+					streamReader.close();
+				}
+				String result2 = result.toString();
+				PrintWriter p = response.getWriter();
+				p.println(result2);
+				p.flush();
+				p.close();
+			} catch (Exception e) {
+				e.getStackTrace();
+				log.info("完成任务失败" + e.getMessage());
+			}
+
+		}
+
+	}
+	@ApiOperation(value = "获取待办任务", notes = "根据流程实例id获取待办任务")
+	@RequestMapping(value = "/get/all", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+	public void getTodoTaskAndGroup(HttpServletRequest request, HttpServletResponse response) {
+
+		JSONObject jsonParam = null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "获取待办任务失败!");
+		BufferedReader streamReader = null;
+		response.setContentType("application/json;charset=utf-8");
+		try {
+			// 获取输入流
+			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+			// 写入数据到Stringbuilder
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = streamReader.readLine()) != null) {
+				sb.append(line);
+			}
+			log.info("参数" + sb);
+			jsonParam = JSONObject.parseObject(sb.toString());
+			List<Map<String, String>> list = new ArrayList<>();
+			if (jsonParam != null) {
+				String userId = jsonParam.getString("userId");
+				if (StringUtils.isBlank(userId)) {
+					result.put("rtnMsg", "获取待办任务失败,参数userId不能为空！");
+					throw new MyExceptions("获取待办任务失败,userId不能为空！");
+				}
+				String procDefId = jsonParam.getString("procDefId");
+				if (StringUtils.isBlank(procDefId)) {
+					result.put("rtnMsg", "获取待办任务失败,参数procDefId不能为空！");
+					throw new MyExceptions("获取待办任务失败,procDefId不能为空！");
+				}
+				List<Task> tasks = taskService.createTaskQuery().processDefinitionId(procDefId)
+						.taskAssignee(userId).orderByTaskCreateTime().desc()
+						.list();
+
+				List<Task> groupTasks = taskService.createTaskQuery().processDefinitionId(procDefId)
+						.taskCandidateUser(userId).orderByTaskCreateTime()
+						.desc().list();
+				List<BpmActRuTask> ruList = new ArrayList<>();
+				if (!tasks.isEmpty()) {
+					for (Task task : tasks) {
+						String taskId = task.getId();
+						BpmActRuTask bpmActRuTaskList = (BpmActRuTask) bpmActivityService.getById(taskId);
+						ruList.add(bpmActRuTaskList);
+
+					}
+
+				}
+				if (!groupTasks.isEmpty()) {
+					for (Task task : groupTasks) {
+						String taskId = task.getId();
+						BpmActRuTask bpmActRuTaskList = (BpmActRuTask) bpmActivityService.getById(taskId);
+						ruList.add(bpmActRuTaskList);
+
+					}
+
+				}
+				Map<String, Object> rtnMap = new HashMap<>();
+				rtnMap.put("totalNumber", ruList.size());
+
+				result.put("rtnCode", "1");
+				result.put("rtnMsg", "获取待办任务成功!");
+				result.put("bean", null);
+				result.put("beans", ruList);
+				result.put("rtnMap", rtnMap);
+				log.info("获取待办任务成功" + result.toString());
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("获取待办任务失败" + e.getMessage());
+		} finally {
+			try {
+				if (null != streamReader) {
+					streamReader.close();
+				}
+				String result2 = result.toString();
+				PrintWriter p = response.getWriter();
+				p.println(result2);
+				p.flush();
+				p.close();
+			} catch (Exception e) {
+				e.getStackTrace();
+				log.info("获取待办任务失败" + e.getMessage());
+			}
+
+		}
+
+	}
+	
+	
+	
+	
 
 	@ApiOperation(value = "获取待办任务", notes = "根据流程实例id获取待办任务")
 	@RequestMapping(value = "/get", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
@@ -676,8 +937,13 @@ public class TodoTaskController {
 					result.put("rtnMsg", "获取待办任务失败,参数userId不能为空！");
 					throw new MyExceptions("获取待办任务失败,userId不能为空！");
 				}
-
-				List<Task> tasks = taskService.createTaskQuery().taskAssignee(userId).orderByTaskCreateTime().desc()
+				String procDefId = jsonParam.getString("procDefId");
+				if (StringUtils.isBlank(procDefId)) {
+					result.put("rtnMsg", "获取待办任务失败,参数procDefId不能为空！");
+					throw new MyExceptions("获取待办任务失败,procDefId不能为空！");
+				}
+				List<Task> tasks = taskService.createTaskQuery().processDefinitionId(procDefId)
+						.taskAssignee(userId).orderByTaskCreateTime().desc()
 						.list();
 
 				List<BpmActRuTask> ruList = new ArrayList<>();
@@ -1212,5 +1478,5 @@ public class TodoTaskController {
 
 		}
 	}
-
+	
 }
