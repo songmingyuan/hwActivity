@@ -1479,4 +1479,67 @@ public class TodoTaskController {
 		}
 	}
 	
+	
+	@ApiOperation(value = "根据任务id获取历史任务节点", notes = "根据任务id获取历史任务节点")
+	@RequestMapping(value = "/end/task", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+	public void getActivityRuTask2(HttpServletRequest request, HttpServletResponse response) {
+		JSONObject jsonParam = null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "获取历史任务失败!");
+		result.put("procDefId", null);
+		BufferedReader streamReader = null;
+		response.setContentType("application/json;charset=utf-8");
+		try {
+			// 获取输入流
+			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+			// 写入数据到Stringbuilder
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = streamReader.readLine()) != null) {
+				sb.append(line);
+			}
+			log.info("参数" + sb);
+			jsonParam = JSONObject.parseObject(sb.toString());
+			if (jsonParam != null) {
+				String procInstId = jsonParam.getString("procInstId");
+				if (StringUtils.isBlank(procInstId)) {
+					throw new MyExceptions("获取历史任务失败,procInstId不能为空！");
+				}
+				List<HistoricTaskInstance> list = processEngine.getHistoryService() // 历史相关Service
+						.createHistoricTaskInstanceQuery() // 创建历史任务实例查询
+						.processInstanceId(procInstId).finished()
+						// 用流程实例id查询
+						.orderByHistoricTaskInstanceEndTime().desc().list();
+
+				result.put("rtnCode", "1");
+				result.put("rtnMsg", "获取历史任务成功");
+				result.put("bean", null);
+				result.put("beans", list);
+				log.info("获取历史任务成功" + result.toString());
+
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("获取历史任务失败" + e.getMessage());
+		} finally {
+			try {
+				if (null != streamReader) {
+					streamReader.close();
+				}
+				String result2 = result.toString();
+				PrintWriter p = response.getWriter();
+				p.println(result2);
+				p.flush();
+				p.close();
+			} catch (Exception e) {
+				e.getStackTrace();
+				log.info("获取历史任务失败" + e.getMessage());
+			}
+
+		}
+	}
+	
 }
