@@ -2259,7 +2259,7 @@ public class ActivityTaskController {
 		JSONObject jsonParam = null;
 		JSONObject result = new JSONObject();
 		result.put("rtnCode", "-1");
-		result.put("rtnMsg", "获取历史任务失败!");
+		result.put("rtnMsg", "获取批注内容失败!");
 		result.put("procDefId", null);
 		BufferedReader streamReader = null;
 		response.setContentType("application/json;charset=utf-8");
@@ -2279,8 +2279,8 @@ public class ActivityTaskController {
 
 				String procInstId = jsonParam.getString("procInstId");
 				if (StringUtils.isBlank(procInstId)) {
-					result.put("rtnMsg", "获取历史任务失败,procInstId不能为空！");
-					throw new MyExceptions("获取历史任务失败,procInstId不能为空！");
+					result.put("rtnMsg", "获取批注内容失败,procInstId不能为空！");
+					throw new MyExceptions("获取批注内容失败,procInstId不能为空！");
 				}
 				List<Comment> historyCommnets = new ArrayList<>();
 				ProcessInstance pi = runtimeService.createProcessInstanceQuery().processInstanceId(procInstId)
@@ -2300,15 +2300,15 @@ public class ActivityTaskController {
 				// 5）返回
 
 				result.put("rtnCode", "1");
-				result.put("rtnMsg", "获取历史任务成功!");
+				result.put("rtnMsg", "获取批注内容成功!");
 				result.put("bean", null);
 				result.put("beans", historyCommnets);
-				log.info("获取历史任务成功" + result.toString());
+				log.info("获取批注内容成功" + result.toString());
 			}
 
 		} catch (Exception e) {
 			e.printStackTrace();
-			log.info("获取历史任务失败" + e.getMessage());
+			log.info("获取批注内容失败" + e.getMessage());
 		} finally {
 			try {
 				if (null != streamReader) {

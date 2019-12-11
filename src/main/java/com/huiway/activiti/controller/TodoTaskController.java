@@ -99,6 +99,7 @@ public class TodoTaskController {
 				Map<String, Object> params = JSONObject.parseObject(jsonParam.toJSONString(),
 						new TypeReference<Map<String, Object>>() {
 						});
+				String comment = jsonParam.getString("comment");
 				String assignee = jsonParam.getString("assignee");
 				String assigneeKey = jsonParam.getString("assigneeKey");
 				String taskId = jsonParam.getString("taskId");
@@ -137,6 +138,9 @@ public class TodoTaskController {
 					if (instSuspended) {
 						throw new ValidationError("已挂起This activity instance has already be suspended.");
 					}
+					taskService.addComment(task.getId(), task.getProcessInstanceId(), comment);
+					
+					
 					taskService.complete(taskId, params);
 					if (!StringUtils.isEmpty(assigneeKey)) {
 						boolean flag = false;
@@ -246,6 +250,8 @@ public class TodoTaskController {
 						new TypeReference<Map<String, Object>>() {
 						});
 				String assignee = jsonParam.getString("assignee");
+				String comment = jsonParam.getString("comment");
+				
 				String assigneeKey = jsonParam.getString("assigneeKey");
 				String taskId = jsonParam.getString("taskId");
 				if (StringUtils.isBlank(taskId)) {
@@ -272,6 +278,7 @@ public class TodoTaskController {
 					if (instSuspended) {
 						throw new ValidationError("已挂起This activity instance has already be suspended.");
 					}
+					taskService.addComment(task.getId(), task.getProcessInstanceId(), comment);
 					taskService.complete(taskId);
 					Map<String, Object> paramMap = new HashMap<>();
 					paramMap.put("PROC_INST_ID_", processInstanceId);
@@ -684,6 +691,8 @@ public class TodoTaskController {
 						new TypeReference<Map<String, Object>>() {
 						});
 				String assignee = jsonParam.getString("assignee");
+				String comment = jsonParam.getString("comment");
+				
 				String assigneeKey = jsonParam.getString("assigneeKey");
 				String taskId = jsonParam.getString("taskId");
 				if (StringUtils.isBlank(taskId)) {
@@ -728,7 +737,7 @@ public class TodoTaskController {
 						}
 					}
 					
-					
+					taskService.addComment(task.getId(), task.getProcessInstanceId(), comment);
 					taskService.complete(taskId, params);
 					if (!StringUtils.isEmpty(assigneeKey)) {
 						boolean flag = false;
