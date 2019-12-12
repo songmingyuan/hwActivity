@@ -1767,18 +1767,6 @@ public class ActivityTaskController {
 					}
 					BpmnModel model = processEngine.getRepositoryService().getBpmnModel(definitionId);
 					for (String str : set) {
-						
-//						Map<String, Object> resultMap = getNodeType(definitionId, str);
-//						if (resultMap != null) {
-//							String nodeType = resultMap.get("nodeType") == null ? ""
-//									: resultMap.get("nodeType").toString();
-//							if("2".equals(nodeType)){
-//								continue;
-//							}
-//
-//						}else{
-//							continue;
-//						}
 						FlowElement activeEl = model.getMainProcess().getFlowElement(str);
 						if (activeEl instanceof org.activiti.bpmn.model.UserTask) {
 
@@ -1787,27 +1775,11 @@ public class ActivityTaskController {
 							for (SequenceFlow sequenceFlow : sequenceFlowList) {
 								FlowElement flowElement =sequenceFlow.getSourceFlowElement();
 								gateWays = getTaskGateWayDepth2(flowElement, 0);
-//								if(flowElement instanceof UserTask){
-//									UserTask userTask = (UserTask) flowElement;
-//									 resultMap = getNodeType(definitionId, userTask.getId());
-//									if (resultMap != null) {
-//										String nodeType = resultMap.get("nodeType") == null ? ""
-//												: resultMap.get("nodeType").toString();
-//										if("1".equals(nodeType)){
-//											setString.add(str);
-//										}
-//
-//									}
-//									
-//								}
-								
+
 								
 							if(gateWays.isEmpty()){
 								setString.add(str);
 							}
-								
-								
-								
 							}
 						}
 

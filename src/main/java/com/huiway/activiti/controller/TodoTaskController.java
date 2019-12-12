@@ -32,6 +32,7 @@ import org.activiti.engine.TaskService;
 import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.history.HistoricTaskInstance;
 import org.activiti.engine.history.HistoricVariableInstance;
+import org.activiti.engine.identity.User;
 import org.activiti.engine.task.IdentityLink;
 import org.activiti.engine.task.Task;
 import org.apache.commons.lang3.StringUtils;
@@ -492,8 +493,67 @@ public class TodoTaskController {
 		}
 
 	}
+    
+	@ApiOperation(value = "获取任务处理组人员明细", notes = "根据组id查询明细")
+	@RequestMapping(value = "/get/group/user", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+	public void getUserByGroupId(HttpServletRequest request, HttpServletResponse response) {
 
-	
+		JSONObject jsonParam = null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "获取任务处理组人员失败!");
+		BufferedReader streamReader = null;
+		response.setContentType("application/json;charset=utf-8");
+		try {
+			// 获取输入流
+			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+			// 写入数据到Stringbuilder
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = streamReader.readLine()) != null) {
+				sb.append(line);
+			}
+			log.info("参数" + sb);
+			jsonParam = JSONObject.parseObject(sb.toString());
+			List<Map<String, String>> list = new ArrayList<>();
+			if (jsonParam != null) {
+				String groupId = jsonParam.getString("groupId");
+				if (StringUtils.isBlank(groupId)) {
+					result.put("rtnMsg", "获取任务处理组人员失败,参数taskId不能为空！");
+					throw new MyExceptions("获取任务处理组人员失败,taskId不能为空！");
+				}
+
+		        List<User> userList = identityService.createUserQuery().memberOfGroup(groupId).listPage(0, 100);//查询用户列表
+
+				result.put("rtnCode", "1");
+				result.put("rtnMsg", "获取任务处理组人员明细成功!");
+				result.put("bean", null);
+				result.put("beans", userList);
+				log.info("获取任务处理组人员明细成功" + result.toString());
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("获取任务处理组人员明细失败" + e.getMessage());
+		} finally {
+			try {
+				if (null != streamReader) {
+					streamReader.close();
+				}
+				String result2 = result.toString();
+				PrintWriter p = response.getWriter();
+				p.println(result2);
+				p.flush();
+				p.close();
+			} catch (Exception e) {
+				e.getStackTrace();
+				log.info("获取任务处理组人员明细失败" + e.getMessage());
+			}
+
+		}
+
+	}
 	
 	
 	
