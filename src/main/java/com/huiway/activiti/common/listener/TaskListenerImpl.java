@@ -18,7 +18,7 @@ public class TaskListenerImpl implements TaskListener {
 		}else if("usertask10".equals(taskDefKey)){
 			delegateTask.setAssignee("hwsystem");
 		}
-		
+	
 		
 	}
 }
