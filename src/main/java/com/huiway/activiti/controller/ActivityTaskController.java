@@ -2257,18 +2257,27 @@ public class ActivityTaskController {
 				List<Comment> historyCommnets = new ArrayList<>();
 				ProcessInstance pi = runtimeService.createProcessInstanceQuery().processInstanceId(procInstId)
 						.singleResult();
-				// 2）通过流程实例查询所有的(用户任务类型)历史活动
-				List<HistoricActivityInstance> hais = historyService.createHistoricActivityInstanceQuery()
-						.processInstanceId(pi.getId()).activityType("userTask").list();
-				// 3）查询每个历史任务的批注
-				for (HistoricActivityInstance hai : hais) {
-					String historytaskId = hai.getTaskId();
-					List<Comment> comments = taskService.getTaskComments(historytaskId);
-					// 4）如果当前任务有批注信息，添加到集合中
-					if (comments != null && comments.size() > 0) {
-						historyCommnets.addAll(comments);
+				if(pi!=null){
+					
+					// 2）通过流程实例查询所有的(用户任务类型)历史活动
+					List<HistoricActivityInstance> hais = historyService.createHistoricActivityInstanceQuery()
+							.processInstanceId(pi.getId()).activityType("userTask").list();
+					// 3）查询每个历史任务的批注
+					for (HistoricActivityInstance hai : hais) {
+						String historytaskId = hai.getTaskId();
+						List<Comment> comments = taskService.getTaskComments(historytaskId);
+						// 4）如果当前任务有批注信息，添加到集合中
+						if (comments != null && comments.size() > 0) {
+							historyCommnets.addAll(comments);
+						}
 					}
+					
+				}else{
+					
+					List<Comment> comments = taskService.getProcessInstanceComments(procInstId);
+					historyCommnets.addAll(comments);
 				}
+				
 				// 5）返回
 
 				result.put("rtnCode", "1");
