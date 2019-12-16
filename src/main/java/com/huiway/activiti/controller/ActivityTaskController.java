@@ -840,7 +840,7 @@ public class ActivityTaskController {
 		}
 
 	}
-	@ApiOperation(value = "只撤回到上一步流程节点", notes = "只撤回到上一步流程节点")
+	@ApiOperation(value = "只撤回到上一步流程节点（个人和组）", notes = "只撤回到上一步流程节点")
     @RequestMapping(value = "/revocation/task", method=RequestMethod.POST,produces="application/json;charset=utf-8")
 	public void revocationUp2(HttpServletRequest request, HttpServletResponse response) {
 		response.setContentType("application/json;charset=utf-8");
@@ -1712,6 +1712,104 @@ public class ActivityTaskController {
 
 		}
 
+	}
+	
+	@ApiOperation(value = "根据任务id判断是否可以撤回回上一步节点", notes = "根据任务id判断是否可以撤回回上一步节点")
+	@RequestMapping(value = "/is/reject", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
+	public void getIsRejectNode(HttpServletRequest request, HttpServletResponse response) {
+		JSONObject jsonParam = null;
+		JSONObject result = new JSONObject();
+		result.put("rtnCode", "-1");
+		result.put("rtnMsg", "获取信息失败!");
+		result.put("procDefId", null);
+		BufferedReader streamReader = null;
+		response.setContentType("application/json;charset=utf-8");
+		try {
+			// 获取输入流
+			streamReader = new BufferedReader(new InputStreamReader(request.getInputStream(), "UTF-8"));
+
+			// 写入数据到Stringbuilder
+			StringBuilder sb = new StringBuilder();
+			String line = null;
+			while ((line = streamReader.readLine()) != null) {
+				sb.append(line);
+			}
+			log.info("参数" + sb);
+			jsonParam = JSONObject.parseObject(sb.toString());
+			List<Map<String, Object>> retuenList = new ArrayList<>();
+			List<TaskGatewayDTO> gateWays = new ArrayList<TaskGatewayDTO>();
+			List<SequenceFlow> sequenceFlowList=new ArrayList<>();
+			if (jsonParam != null) {
+				String taskId = jsonParam.getString("taskId");
+				if (StringUtils.isBlank(taskId)) {
+					throw new MyExceptions("获取信息失败,taskId不能为空！");
+				}
+				Task task = taskService.createTaskQuery().taskId(taskId) // 根据任务id查询
+						.singleResult();
+				
+				String re="";
+				String taskDefinitionKey="";
+				if (task != null) {
+					String definitionId = task.getProcessDefinitionId();
+					taskDefinitionKey=task.getTaskDefinitionKey();
+					BpmnModel model = processEngine.getRepositoryService().getBpmnModel(definitionId);
+					if(StringUtils.isEmpty(taskDefinitionKey)){
+						throw new MyExceptions("获取上一步节点信息失败");
+					}else{	
+						FlowElement activeEl = model.getMainProcess().getFlowElement(taskDefinitionKey);
+						if (activeEl instanceof org.activiti.bpmn.model.UserTask) {
+							 sequenceFlowList = ((org.activiti.bpmn.model.UserTask) activeEl)
+									.getIncomingFlows();
+							for (SequenceFlow sequenceFlow : sequenceFlowList) {
+								FlowElement targetEl = sequenceFlow.getSourceFlowElement();
+                               if(targetEl instanceof org.activiti.bpmn.model.ExclusiveGateway
+       								|| targetEl instanceof org.activiti.bpmn.model.ParallelGateway){
+                            	   re="false";
+                            	 
+                               }else if(targetEl instanceof org.activiti.bpmn.model.UserTask){
+                            	   UserTask userTask = (UserTask) targetEl;
+       							MultiInstanceLoopCharacteristics ll = userTask.getLoopCharacteristics();
+       							if (ll != null) {
+       								re="false";
+       						     
+       							}else{
+       								re="true";
+       							}
+                               }
+							}
+						}
+					}
+					Map<String, Object> rtnMap = new HashMap<>();
+					rtnMap.put("isReject", re);
+					result.put("rtnMap", rtnMap);
+					result.put("rtnCode", "1");
+					result.put("rtnMsg", "获取信息任务成功");
+					result.put("bean", null);
+					result.put("beans", null);
+					log.info("获取信息成功" + result.toString());
+				}
+
+			}
+
+		} catch (Exception e) {
+			e.printStackTrace();
+			log.info("获取信息任务失败" + e.getMessage());
+		} finally {
+			try {
+				if (null != streamReader) {
+					streamReader.close();
+				}
+				String result2 = result.toString();
+				PrintWriter p = response.getWriter();
+				p.println(result2);
+				p.flush();
+				p.close();
+			} catch (Exception e) {
+				e.getStackTrace();
+				log.info("获取信息任务失败" + e.getMessage());
+			}
+
+		}
 	}
     @ApiOperation(value = "根据任务id获取可以驳回的节点", notes = "根据任务id获取可以驳回的节点")
 	@RequestMapping(value = "/reject/node", method = RequestMethod.POST, produces = "application/json;charset=utf-8")
