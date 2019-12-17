@@ -86,7 +86,7 @@ public class MyExecutionListener implements ExecutionListener  {
 	    	variables.put("zsUser", auditUserIds);
 	    }
 	    //${jlUser}
-        if("usertask5".equals(taskDefKey)){
+        if("usertask3".equals(taskDefKey)){
         	variables.put("jlUser", auditUserIds);
 	    }
         execution.setVariables(variables);
