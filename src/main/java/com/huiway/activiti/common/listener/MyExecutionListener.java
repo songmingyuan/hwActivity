@@ -56,13 +56,13 @@ public class MyExecutionListener implements ExecutionListener  {
 					for (int i = 0; i < list.size(); i++) {
 						Map<String, Object> map = list.get(i);
 						String userName = map.get("userName") == null ? "" : map.get("userName").toString();
-						if (!StringUtils.isEmpty(userName)) {
+						
 							if (i == list.size() - 1) {
 								auditUserIds = auditUserIds + userName;
 							} else {
-								auditUserIds = auditUserIds + "," + userName;
+								auditUserIds = auditUserIds+userName + "," ;
 							}
-						}
+					
 
 					}
 				}
