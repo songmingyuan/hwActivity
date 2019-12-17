@@ -668,7 +668,7 @@ public class TodoTaskController {
 						Map<String, Object> bpmActRuTaskmap = new HashMap<>();
 						// bpmActRuTaskmap.put("bpmActRuTask", bpmActRuTask);
 						bpmActRuTaskmap.put("procInstId", bpmActRuTask.getProcInstId());
-						bpmActRuTaskmap.put("taskId", bpmActRuTask.getAssignee());
+						bpmActRuTaskmap.put("taskId", bpmActRuTask.getId());
 						bpmActRuTaskmap.put("procInstId", bpmActRuTask.getId());
 						bpmActRuTaskmap.put("taskDefKey", bpmActRuTask.getTaskDefKey());
 						bpmActRuTaskmap.put("name", bpmActRuTask.getName());
