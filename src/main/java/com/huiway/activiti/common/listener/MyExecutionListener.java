@@ -5,10 +5,13 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.activiti.bpmn.model.FlowElement;
+import org.activiti.bpmn.model.UserTask;
 import org.activiti.engine.HistoryService;
 import org.activiti.engine.TaskService;
 import org.activiti.engine.delegate.DelegateExecution;
@@ -33,8 +36,13 @@ public class MyExecutionListener implements ExecutionListener  {
 	 public void notify(DelegateExecution execution) {
 		log.info("进入MyExecutionListener执行监听器方法------------");
 		HistoryService historyService=SpringUtil.getObject(HistoryService.class);
+		FlowElement e= execution.getCurrentFlowElement();
+		List<String> strList=new ArrayList<>();
 		
-		
+		if(e instanceof UserTask){
+			UserTask userTask = (UserTask) e;
+			strList=userTask.getCandidateUsers();
+		}
         String procInstId=execution.getProcessInstanceId();
 		String procDefId = execution.getProcessDefinitionId();
 		String taskDefKey = execution.getCurrentActivityId();
@@ -81,14 +89,13 @@ public class MyExecutionListener implements ExecutionListener  {
 		}
 		
 		Map<String, Object>  variables =execution.getVariables();
-		//${zsUser}
-	    if("usertask4".equals(taskDefKey)){
-	    	variables.put("zsUser", auditUserIds);
-	    }
-	    //${jlUser}
-        if("usertask3".equals(taskDefKey)){
-        	variables.put("jlUser", auditUserIds);
-	    }
+		String auditActivity="";
+		if(!strList.isEmpty()){
+			auditActivity=strList.get(0).replace("${", "").replace("}", "");
+		}
+		if(!StringUtils.isEmpty(auditActivity)){
+			variables.put(auditActivity, auditUserIds);
+		}
         execution.setVariables(variables);
 	 }
 	
