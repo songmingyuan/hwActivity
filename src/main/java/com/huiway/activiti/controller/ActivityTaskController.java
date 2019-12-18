@@ -874,6 +874,13 @@ public class ActivityTaskController {
 				if (StringUtils.isBlank(userId)) {
 					throw new MyExceptions("只撤回到上一步流程节点失败,userId不能为空！");
 				}
+				
+				String auditAdvice = jsonParam.getString("auditAdvice");
+				if(StringUtils.isEmpty(auditAdvice)){
+					auditAdvice="撤回上一步";
+				}
+				
+				
 				TaskService taskService = processEngine.getTaskService();
 				
 				
@@ -954,7 +961,7 @@ public class ActivityTaskController {
 				flowNode.setOutgoingFlows(newSequenceFlowList);
 
 				Authentication.setAuthenticatedUserId(userId);
-				taskService.addComment(task.getId(), task.getProcessInstanceId(), "撤回");
+				taskService.addComment(task.getId(), task.getProcessInstanceId(), "撤回："+auditAdvice);
 				//
 				// Map<String, Object> currentVariables = new HashMap<String,
 				// Object>();
