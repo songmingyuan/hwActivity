@@ -1770,7 +1770,9 @@ public class ActivityTaskController {
 							for (SequenceFlow sequenceFlow : sequenceFlowList) {
 								FlowElement targetEl = sequenceFlow.getSourceFlowElement();
                                if(targetEl instanceof org.activiti.bpmn.model.ExclusiveGateway
-       								|| targetEl instanceof org.activiti.bpmn.model.ParallelGateway){
+       								|| targetEl instanceof org.activiti.bpmn.model.ParallelGateway
+       								|| targetEl instanceof org.activiti.bpmn.model.StartEvent
+                            		   ){
                             	   re="false";
                             	 
                                }else if(targetEl instanceof org.activiti.bpmn.model.UserTask){
