@@ -874,7 +874,10 @@ public class ActivityTaskController {
 				if (StringUtils.isBlank(userId)) {
 					throw new MyExceptions("只撤回到上一步流程节点失败,userId不能为空！");
 				}
-				
+				String activityId2 = jsonParam.getString("activityId");
+				if (StringUtils.isBlank(activityId2)) {
+					throw new MyExceptions("只撤回到上一步流程节点失败,activityId不能为空！");
+				}
 				String auditAdvice = jsonParam.getString("auditAdvice");
 				if(StringUtils.isEmpty(auditAdvice)){
 					auditAdvice="撤回上一步";
@@ -905,13 +908,15 @@ public class ActivityTaskController {
 				HistoricTaskInstance myTask = null;
 
 				if (htiList.size() >= 1) {
-					HistoricTaskInstance hti = htiList.get(0);
-					//if (userId.equals(hti.getAssignee())) {
-						myTaskId = hti.getId();
-						myTask = hti;
-					//}
+					for(HistoricTaskInstance hti :htiList ){
+						String taskDefinitionKey=hti.getTaskDefinitionKey();
+						if(taskDefinitionKey.equals(activityId2)){
+							myTaskId = hti.getId();
+							myTask = hti;
+							break;
+						}
+					}
 				}
-
 				if (null == myTaskId) {
 					throw new ValidationError("找不到节点，无法撤回");
 				}
@@ -1755,10 +1760,19 @@ public class ActivityTaskController {
 						.singleResult();
 				
 				String re="";
+				List<Map<String,Object>> listmap=new ArrayList<>();
+				Map<String, Object> rtnMap = new HashMap<>();
 				String taskDefinitionKey="";
 				if (task != null) {
 					String definitionId = task.getProcessDefinitionId();
+					String procInstId = task.getProcessInstanceId();
 					taskDefinitionKey=task.getTaskDefinitionKey();
+					List<HistoricTaskInstance> list = processEngine.getHistoryService() // 历史相关Service
+							.createHistoricTaskInstanceQuery() // 创建历史任务实例查询
+							.processInstanceId(procInstId).finished()
+							// 用流程实例id查询
+							.orderByHistoricTaskInstanceEndTime().desc().list();
+
 					BpmnModel model = processEngine.getRepositoryService().getBpmnModel(definitionId);
 					if(StringUtils.isEmpty(taskDefinitionKey)){
 						throw new MyExceptions("获取上一步节点信息失败");
@@ -1780,15 +1794,38 @@ public class ActivityTaskController {
        							MultiInstanceLoopCharacteristics ll = userTask.getLoopCharacteristics();
        							if (ll != null) {
        								re="false";
-       						     
        							}else{
+       								Map<String, Object> obj = new HashMap<>();
+       								obj.put("activityId", userTask.getId());
+       								obj.put("activityName", userTask.getName());
+       								listmap.add(obj);
        								re="true";
        							}
                                }
 							}
 						}
 					}
-					Map<String, Object> rtnMap = new HashMap<>();
+					String taskDefKey="";
+					boolean flag=false;
+					for(Map<String, Object> obj2 : listmap){
+						String activityId=obj2.get("activityId")==null?"":obj2.get("activityId").toString();
+						if(!StringUtils.isEmpty(activityId)){
+							for(HistoricTaskInstance hti : list){
+								 taskDefKey=hti.getTaskDefinitionKey();
+								if(activityId.equals(taskDefKey)){
+									flag=true;
+									break;
+								}
+								
+							}
+						}
+						if(flag){
+							break;
+						}
+					}
+					
+					rtnMap.put("activityId", taskDefKey);
+					
 					rtnMap.put("isReject", re);
 					result.put("rtnMap", rtnMap);
 					result.put("rtnCode", "1");
