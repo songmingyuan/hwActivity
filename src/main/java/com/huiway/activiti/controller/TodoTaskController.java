@@ -100,7 +100,11 @@ public class TodoTaskController {
 				Map<String, Object> params = JSONObject.parseObject(jsonParam.toJSONString(),
 						new TypeReference<Map<String, Object>>() {
 						});
-				String comment = jsonParam.getString("comment");
+				String comment = jsonParam.getString("auditAdvice");
+				if (StringUtils.isBlank(comment)) {
+					result.put("rtnMsg", "完成任务失败,参数auditAdvice不能为空！");
+					throw new MyExceptions("完成任务失败,auditAdvice不能为空！");
+				}
 				String assignee = jsonParam.getString("assignee");
 				String assigneeKey = jsonParam.getString("assigneeKey");
 				String taskId = jsonParam.getString("taskId");
@@ -114,7 +118,6 @@ public class TodoTaskController {
 					result.put("rtnMsg", "完成任务失败,参数userId不能为空！");
 					throw new MyExceptions("完成任务失败,userId不能为空！");
 				}
-
 				ActivitiDto dto = new ActivitiDto();
 				List<BpmActRuTask> bpmActRuTaskList = new ArrayList<BpmActRuTask>();
 				Task task = taskService.createTaskQuery().taskId(taskId) // 根据任务id查询
@@ -122,11 +125,14 @@ public class TodoTaskController {
 				if (task != null) {
 					String processInstanceId = task.getProcessInstanceId();
 					String processDefinitionId = task.getProcessDefinitionId();
-
-					if (!userId.equals(task.getAssignee())) {
-						result.put("rtnMsg", "完成任务失败,该任务已不在您名下！");
-						throw new MyExceptions("完成任务失败,该任务已不在您名下！");
-					}
+                    String  auditAssignee=task.getAssignee();
+                    if(!StringUtils.isEmpty(auditAssignee)){
+                    	if (!userId.equals(auditAssignee)) {
+    						result.put("rtnMsg", "完成任务失败,该任务已不在您名下！");
+    						throw new MyExceptions("完成任务失败,该任务已不在您名下！");
+    					}
+                    }
+					
 
 					boolean modelSuspended = repositoryService.createProcessDefinitionQuery()
 							.processDefinitionId(processDefinitionId).singleResult().isSuspended();
@@ -140,7 +146,14 @@ public class TodoTaskController {
 						throw new ValidationError("已挂起This activity instance has already be suspended.");
 					}
 					taskService.addComment(task.getId(), task.getProcessInstanceId(), comment);
-					
+					if(StringUtils.isEmpty(auditAssignee)){
+						taskService.setAssignee(taskId, userId);
+					}else{
+						if (!userId.equals(task.getAssignee())) {
+							result.put("rtnMsg", "完成任务失败,该任务已不在您名下！");
+							throw new MyExceptions("完成任务失败,该任务已不在您名下！");
+						}
+					}
 					
 					taskService.complete(taskId, params);
 					if (!StringUtils.isEmpty(assigneeKey)) {
