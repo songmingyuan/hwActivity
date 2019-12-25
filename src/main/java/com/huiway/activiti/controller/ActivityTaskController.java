@@ -32,6 +32,7 @@ import org.activiti.engine.TaskService;
 import org.activiti.engine.history.HistoricActivityInstance;
 import org.activiti.engine.history.HistoricProcessInstance;
 import org.activiti.engine.history.HistoricTaskInstance;
+import org.activiti.engine.history.HistoricVariableInstance;
 import org.activiti.engine.identity.Group;
 import org.activiti.engine.identity.User;
 import org.activiti.engine.impl.identity.Authentication;
@@ -1750,7 +1751,7 @@ public class ActivityTaskController {
 			jsonParam = JSONObject.parseObject(sb.toString());
 			List<Map<String, Object>> retuenList = new ArrayList<>();
 			List<TaskGatewayDTO> gateWays = new ArrayList<TaskGatewayDTO>();
-			List<SequenceFlow> sequenceFlowList=new ArrayList<>();
+			List<SequenceFlow> sequenceFlowList = new ArrayList<>();
 			if (jsonParam != null) {
 				String taskId = jsonParam.getString("taskId");
 				if (StringUtils.isBlank(taskId)) {
@@ -1758,15 +1759,23 @@ public class ActivityTaskController {
 				}
 				Task task = taskService.createTaskQuery().taskId(taskId) // 根据任务id查询
 						.singleResult();
-				
-				String re="";
-				List<Map<String,Object>> listmap=new ArrayList<>();
+
+				String re = "";
+				String isReject="";
+				String activityType = "";
+				String activityId = "";
+				List<Map<String, Object>> listmap = new ArrayList<>();
 				Map<String, Object> rtnMap = new HashMap<>();
-				String taskDefinitionKey="";
+				String taskDefinitionKey = "";
 				if (task != null) {
 					String definitionId = task.getProcessDefinitionId();
 					String procInstId = task.getProcessInstanceId();
-					taskDefinitionKey=task.getTaskDefinitionKey();
+					taskDefinitionKey = task.getTaskDefinitionKey();
+					List<HistoricActivityInstance> actlist = processEngine.getHistoryService()
+							.createHistoricActivityInstanceQuery().processInstanceId(procInstId)
+							.finished()
+							.orderByHistoricActivityInstanceEndTime().desc().list();
+
 					List<HistoricTaskInstance> list = processEngine.getHistoryService() // 历史相关Service
 							.createHistoricTaskInstanceQuery() // 创建历史任务实例查询
 							.processInstanceId(procInstId).finished()
@@ -1774,69 +1783,78 @@ public class ActivityTaskController {
 							.orderByHistoricTaskInstanceEndTime().desc().list();
 
 					BpmnModel model = processEngine.getRepositoryService().getBpmnModel(definitionId);
-					if(StringUtils.isEmpty(taskDefinitionKey)){
+					if (StringUtils.isEmpty(taskDefinitionKey)) {
 						throw new MyExceptions("获取上一步节点信息失败");
-					}else{	
+					} else {
 						FlowElement activeEl = model.getMainProcess().getFlowElement(taskDefinitionKey);
 						if (activeEl instanceof org.activiti.bpmn.model.UserTask) {
-							 sequenceFlowList = ((org.activiti.bpmn.model.UserTask) activeEl)
-									.getIncomingFlows();
+							sequenceFlowList = ((org.activiti.bpmn.model.UserTask) activeEl).getIncomingFlows();
 							for (SequenceFlow sequenceFlow : sequenceFlowList) {
 								FlowElement targetEl = sequenceFlow.getSourceFlowElement();
-                               if(targetEl instanceof org.activiti.bpmn.model.ExclusiveGateway
-       								|| targetEl instanceof org.activiti.bpmn.model.ParallelGateway
-       								|| targetEl instanceof org.activiti.bpmn.model.StartEvent
-                            		   ){
-                            	   re="false";
-                            	 
-                               }else if(targetEl instanceof org.activiti.bpmn.model.UserTask){
-                            	   UserTask userTask = (UserTask) targetEl;
-       							MultiInstanceLoopCharacteristics ll = userTask.getLoopCharacteristics();
-       							if (ll != null) {
-       								re="false";
-       							}else{
-       								Map<String, Object> obj = new HashMap<>();
-       								obj.put("activityId", userTask.getId());
-       								obj.put("activityName", userTask.getName());
-       								listmap.add(obj);
-       								re="true";
-       							}
-                               }
+								if (targetEl instanceof org.activiti.bpmn.model.ExclusiveGateway) {
+									Map<String, Object> obj = new HashMap<>();
+									obj.put("actType", "exclusiveGateway");
+									re = "false";
+									obj.put("actType", "exclusiveGateway");
+									retuenList.add(obj);
+								} else if (targetEl instanceof org.activiti.bpmn.model.ParallelGateway) {
+									Map<String, Object> obj = new HashMap<>();
+									obj.put("actType", "parallelGateway");
+									retuenList.add(obj);
+								} else if (targetEl instanceof org.activiti.bpmn.model.StartEvent) {
+									Map<String, Object> obj = new HashMap<>();
+									obj.put("actType", "startEvent");
+									retuenList.add(obj);
+								} else if (targetEl instanceof org.activiti.bpmn.model.UserTask) {
+									Map<String, Object> obj = new HashMap<>();
+									obj.put("actType", "userTask");
+									UserTask userTask = (UserTask) targetEl;
+									MultiInstanceLoopCharacteristics ll = userTask.getLoopCharacteristics();
+									if (ll != null) {
+										re = "false";
+									} else {
+										obj.put("activityId", userTask.getId());
+										obj.put("activityName", userTask.getName());
+										re = "true";
+									}
+									obj.put("isReject", re);
+									retuenList.add(obj);
+								}
 							}
 						}
-					}
-					String taskDefKey="";
-					boolean flag=false;
-					for(Map<String, Object> obj2 : listmap){
-						String activityId=obj2.get("activityId")==null?"":obj2.get("activityId").toString();
-						if(!StringUtils.isEmpty(activityId)){
-							for(HistoricTaskInstance hti : list){
-								 taskDefKey=hti.getTaskDefinitionKey();
-								if(activityId.equals(taskDefKey)){
-									flag=true;
+						if (!actlist.isEmpty()) {
+							HistoricActivityInstance hai = actlist.get(0);
+							activityId = hai.getActivityId();
+							activityType = hai.getActivityType();
+						}
+						if (StringUtils.isEmpty(activityType)) {
+							throw new MyExceptions("获取信息当前任务上一步操作记录失败");
+						}
+						if ("parallelGateway".equals(activityType) || "exclusiveGateway".equals(activityType)
+								|| "startEvent".equals(activityType)) {
+							re = "false";
+						} else if ("userTask".equals(activityType)) {
+							for (Map<String, Object> obj2 : retuenList) {
+								String actType = obj2.get("actType") == null ? "" : obj2.get("actType").toString();
+								 isReject = obj2.get("isReject") == null ? "" : obj2.get("isReject").toString();
+								if (actType.equals(activityType)) {
 									break;
 								}
-								
 							}
 						}
-						if(flag){
-							break;
-						}
+						rtnMap.put("activityId", activityId);
+
+						rtnMap.put("isReject", isReject);
+						result.put("rtnMap", rtnMap);
+						result.put("rtnCode", "1");
+						result.put("rtnMsg", "获取信息任务成功");
+						result.put("bean", null);
+						result.put("beans", null);
+						log.info("获取信息成功" + result.toString());
 					}
-					
-					rtnMap.put("activityId", taskDefKey);
-					
-					rtnMap.put("isReject", re);
-					result.put("rtnMap", rtnMap);
-					result.put("rtnCode", "1");
-					result.put("rtnMsg", "获取信息任务成功");
-					result.put("bean", null);
-					result.put("beans", null);
-					log.info("获取信息成功" + result.toString());
+
 				}
-
 			}
-
 		} catch (Exception e) {
 			e.printStackTrace();
 			log.info("获取信息任务失败" + e.getMessage());
