@@ -1794,6 +1794,7 @@ public class ActivityTaskController {
 									ExclusiveGateway userTask = (ExclusiveGateway) targetEl;
 									obj.put("activityId", userTask.getId());
 									obj.put("activityName", userTask.getName());
+									obj.put("activityType", "exclusiveGateway");
 									obj.put("isReject", "false");
 									retuenList.add(obj);
 								} else if (targetEl instanceof org.activiti.bpmn.model.ParallelGateway) {
@@ -1802,17 +1803,20 @@ public class ActivityTaskController {
 									obj.put("activityId", userTask.getId());
 									obj.put("activityName", userTask.getName());
 									obj.put("isReject", "false");
+									obj.put("activityType", "parallelGateway");
 									retuenList.add(obj);
 								} else if (targetEl instanceof org.activiti.bpmn.model.StartEvent) {
 									Map<String, Object> obj = new HashMap<>();
 									StartEvent userTask = (StartEvent) targetEl;
 									obj.put("activityId", userTask.getId());
 									obj.put("activityName", userTask.getName());
+									obj.put("activityType", "startEvent");
 									obj.put("isReject", "false");
 									retuenList.add(obj);
 								} else if (targetEl instanceof org.activiti.bpmn.model.UserTask) {
 									String re="";
 									UserTask userTask = (UserTask) targetEl;
+									
 									MultiInstanceLoopCharacteristics ll = userTask.getLoopCharacteristics();
 									if (ll != null) {
 										re = "false";
@@ -1823,6 +1827,7 @@ public class ActivityTaskController {
 									obj.put("activityId", userTask.getId());
 									obj.put("activityName", userTask.getName());
 									obj.put("isReject", re);
+									obj.put("activityType", "userTask");
 									retuenList.add(obj);
 								}
 							}
@@ -1830,23 +1835,43 @@ public class ActivityTaskController {
 						String taskDefKey="";
 						
 						Map<String, Object> resultMap=new HashMap<>();
-						for(Map<String, Object> obj2 : retuenList){
-							String activityId2=obj2.get("activityId")==null?"":obj2.get("activityId").toString();
-							resultMap.put(activityId2, obj2);
-						}
-						
-						for(HistoricTaskInstance hti : list){
-							 taskDefKey=hti.getTaskDefinitionKey();
-							if(resultMap!=null){
-								if(resultMap.containsKey(taskDefKey)){
-									Map<String, Object> res=(Map<String, Object>) resultMap.get(taskDefKey);
-									isReject=res.get("isReject")==null?"":res.get("isReject").toString();
-									break;
+						if(retuenList.size()>1){
+							for(Map<String, Object> obj2 : retuenList){
+								String activityId2=obj2.get("activityId")==null?"":obj2.get("activityId").toString();
+								String activityType=obj2.get("activityType")==null?"":obj2.get("activityType").toString();
+								if("userTask".equals(activityType)){
+									resultMap.put(activityId2, obj2);
 								}
 							}
-							
+						    boolean flag=false;
+							for(HistoricTaskInstance hti : list){
+								    taskDefKey=hti.getTaskDefinitionKey();
+								    if(resultMap!=null){
+								    	if(resultMap.containsKey(taskDefKey)){
+								    		Map<String, Object> res=(Map<String, Object>) resultMap.get(taskDefKey);
+								    		isReject=res.get("isReject")==null?"":res.get("isReject").toString();
+								    		if(StringUtils.isEmpty(isReject)){
+												throw new MyExceptions("获取上一步节点信息失败");
+											}
+								    		flag=true;
+								    	}
+								    }
+									if(flag){
+										break;
+									}
+								
+							}
+							if(resultMap==null){
+								taskDefKey="";
+								isReject="flase";
+							}
+						}else if(retuenList.size()==1){
+							for(int i=0;i< retuenList.size();i++){
+								Map<String, Object> res=retuenList.get(0);
+								isReject=res.get("isReject")==null?"":res.get("isReject").toString();
+								taskDefKey=res.get("activityId")==null?"":res.get("activityId").toString();
+							}
 						}
-						
 						
 						rtnMap.put("activityId", taskDefKey);
 
