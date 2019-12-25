@@ -17,8 +17,10 @@ import javax.servlet.http.HttpServletResponse;
 import org.activiti.bpmn.model.BpmnModel;
 import org.activiti.bpmn.model.CallActivity;
 import org.activiti.bpmn.model.EndEvent;
+import org.activiti.bpmn.model.ExclusiveGateway;
 import org.activiti.bpmn.model.FlowElement;
 import org.activiti.bpmn.model.MultiInstanceLoopCharacteristics;
+import org.activiti.bpmn.model.ParallelGateway;
 import org.activiti.bpmn.model.SequenceFlow;
 import org.activiti.bpmn.model.StartEvent;
 import org.activiti.bpmn.model.SubProcess;
@@ -1140,14 +1142,81 @@ public class TodoTaskController {
 				List<Map<String, Object>> maplist = new ArrayList<>();
 				if (model != null) {
 					Collection<FlowElement> flowElements2 = model.getMainProcess().getFlowElements();
-					for (FlowElement e : flowElements2) {
-						Map<String, Object> map = new HashMap<>();
-						map.put("activityId", e.getId());
-						map.put("activityName", e.getName());
-						maplist.add(map);
-
+					for (FlowElement targetEl : flowElements2) {
+						
+						if (targetEl instanceof org.activiti.bpmn.model.ExclusiveGateway) {
+							Map<String, Object> obj = new HashMap<>();
+							ExclusiveGateway userTask = (ExclusiveGateway) targetEl;
+							obj.put("activityId", userTask.getId());
+							obj.put("activityName", userTask.getName());
+							obj.put("activityType", "exclusiveGateway");
+							maplist.add(obj);
+						} else if (targetEl instanceof org.activiti.bpmn.model.ParallelGateway) {
+							Map<String, Object> obj = new HashMap<>();
+							ParallelGateway userTask = (ParallelGateway) targetEl;
+							obj.put("activityId", userTask.getId());
+							obj.put("activityName", userTask.getName());
+							obj.put("activityType", "parallelGateway");
+							maplist.add(obj);
+						} else if (targetEl instanceof org.activiti.bpmn.model.StartEvent) {
+							Map<String, Object> obj = new HashMap<>();
+							StartEvent userTask = (StartEvent) targetEl;
+							obj.put("activityId", userTask.getId());
+							obj.put("activityName", userTask.getName());
+							obj.put("activityType", "startEvent");
+							maplist.add(obj);
+						} else if (targetEl instanceof org.activiti.bpmn.model.UserTask) {
+							UserTask userTask = (UserTask) targetEl;
+							
+							Map<String, Object> obj = new HashMap<>();
+							obj.put("activityId", userTask.getId());
+							obj.put("activityName", userTask.getName());
+							obj.put("activityType", "userTask");
+							maplist.add(obj);
+						}else if(targetEl instanceof SubProcess){
+							SubProcess sp = (SubProcess) targetEl;
+							if (sp != null) {
+								List<FlowElement> flowElementList = (List<FlowElement>) sp.getFlowElements();
+								for (FlowElement ee : flowElementList) {
+									if (ee instanceof org.activiti.bpmn.model.ExclusiveGateway) {
+										Map<String, Object> obj = new HashMap<>();
+										ExclusiveGateway userTask = (ExclusiveGateway) ee;
+										obj.put("activityId", userTask.getId());
+										obj.put("activityName", userTask.getName());
+										obj.put("activityType", "exclusiveGateway");
+										maplist.add(obj);
+									} else if (ee instanceof org.activiti.bpmn.model.ParallelGateway) {
+										Map<String, Object> obj = new HashMap<>();
+										ParallelGateway userTask = (ParallelGateway) ee;
+										obj.put("activityId", userTask.getId());
+										obj.put("activityName", userTask.getName());
+										obj.put("activityType", "parallelGateway");
+										maplist.add(obj);
+									} else if (ee instanceof org.activiti.bpmn.model.StartEvent) {
+										Map<String, Object> obj = new HashMap<>();
+										StartEvent userTask = (StartEvent) ee;
+										obj.put("activityId", userTask.getId());
+										obj.put("activityName", userTask.getName());
+										obj.put("activityType", "startEvent");
+										maplist.add(obj);
+									} else if (ee instanceof org.activiti.bpmn.model.UserTask) {
+										UserTask userTask = (UserTask) ee;
+										
+										Map<String, Object> obj = new HashMap<>();
+										obj.put("activityId", userTask.getId());
+										obj.put("activityName", userTask.getName());
+										obj.put("activityType", "userTask");
+										maplist.add(obj);
+									}
+								
+								}
+								}
+						}
 					}
+						
 				}
+			
+				
 				List<Map<String, String>> list = new ArrayList<Map<String, String>>();
 
 				if (activeEl instanceof org.activiti.bpmn.model.UserTask) { // 节点
@@ -1156,7 +1225,8 @@ public class TodoTaskController {
 						Map<String, String> maps = new HashMap<>();
 						maps.put("condition", sequenceFlow.getConditionExpression());
 						maps.put("activityId", sequenceFlow.getTargetRef());
-
+						maps.put("activityName", sequenceFlow.getName());
+						
 						for (Map<String, Object> m : maplist) {
 							if (sequenceFlow.getTargetRef().equals(m.get("activityId").toString())) {
 								maps.put("activityName", m.get("activityName").toString());
